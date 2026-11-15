@@ -148,9 +148,12 @@ kanıtlanamadı.
 Başka ISS'lerde (Superonline, Vodafone, TurkNet, Kablonet, mobil hatlar) denenmedi. Strateji testi her
 hatta kendi seçimini yapacak şekilde yazıldı, ama orada çalıştığı doğrulanmadı.
 
-## Üçüncü taraf bileşenler
+## Lisans ve üçüncü taraf bileşenler
 
-`bin\` ve `filters\` altındaki dosyalar bu deponun yazarına ait değildir; kaynakları, sürümleri, özetleri
-ve lisansları [UCUNCU-TARAF.md](UCUNCU-TARAF.md) dosyasındadır.
+Bu deponun kendi betikleri ve belgeleri [MIT lisansı](LICENSE) altındadır.
+
+`bin\` ve `filters\` altındaki dosyalar bu deponun yazarına ait değildir ve kendi lisanslarına tabidir
+(zapret: MIT, WinDivert: LGPLv3 ya da GPLv2, Cygwin: LGPLv3+). Kaynakları, sürümleri, özetleri
+[UCUNCU-TARAF.md](UCUNCU-TARAF.md) dosyasında, lisans metinleri `licenses\` klasöründedir.
 
 Bu aracı kullanmanın sorumluluğu kullanana aittir; yasal durum ülkeye ve kullanım amacına göre değişir.

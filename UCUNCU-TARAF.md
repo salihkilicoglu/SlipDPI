@@ -35,9 +35,17 @@ Git blob özetleri (GitHub'daki dosyayla karşılaştırmak için, `git hash-obj
 
 ## Lisanslar
 
-Aşağıdakiler projelerin kendi beyanlarıdır. Depoyu herkese açık yapmadan ya da dosyaları yeniden
-dağıtmadan önce her projenin güncel lisans dosyasını kendi deposundan kontrol et.
+Depodaki [LICENSE](LICENSE) (MIT) yalnızca bu deponun kendi betiklerini ve belgelerini kapsar.
+`bin\` ve `filters\` altındaki dosyalar kendi lisanslarına tabidir. Lisans metinleri 15 Kasım 2026'da
+projelerin kendi depolarından alınıp `licenses\` klasörüne konuldu:
 
-- **zapret**: MIT lisansı.
-- **WinDivert**: LGPLv3 ya da GPLv2 (çift lisans).
-- **Cygwin (`cygwin1.dll`)**: LGPLv3 ve sonrası.
+| Bileşen | Lisans | Metin | Kaynak kod |
+|---|---|---|---|
+| zapret (`winws.exe`, `filters\`) | MIT | `licenses\zapret-LICENSE.txt` | <https://github.com/bol-van/zapret> |
+| WinDivert (`WinDivert.dll`, `WinDivert64.sys`) | LGPLv3 ya da GPLv2 (çift lisans) | `licenses\WinDivert-LICENSE.txt` | <https://github.com/basil00/WinDivert> |
+| Cygwin (`cygwin1.dll`) | LGPLv3 ve sonrası | `licenses\cygwin-CYGWIN_LICENSE.txt`, `licenses\cygwin-COPYING.LIB.txt` | <https://cygwin.com/git.html> |
+
+LGPLv3'ün atıf yaptığı GPLv3 metni `licenses\WinDivert-LICENSE.txt` içinde yer alır.
+
+Bu dosyalar değiştirilmeden dağıtılmaktadır. Bu bölüm hukuki görüş değildir; depoyu herkese açık
+yapmadan önce LGPL'in dağıtım koşullarını (lisans metni ve kaynak koda erişim) kendin gözden geçir.

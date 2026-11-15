@@ -111,13 +111,24 @@ $sHaric = Sekme 'Hariç tutulanlar'    'Geri al'            'Buradaki sitelere h
 
 $btnTest   = Yeni 'Button' 'Yeniden test et' 16 514 126 30
 $btnOnar   = Yeni 'Button' 'Onar'            150 514 86 30
-$btnKayit  = Yeni 'Button' 'Kayıt'           244 514 86 30
+$btnKayit  = Yeni 'Button' 'Kurulum kaydı'   244 514 112 30
 $btnKaldir = Yeni 'Button' 'Kaldır'          458 514 86 30
 $lblIs = Yeni 'Label' 'Hazır.' 18 556 526 20
 $lblIs.ForeColor = $Gri
 
 $form.Controls.AddRange(@($lblBaslik, $lblNokta, $lblDurum, $lblBilgi, $btnAcKapat, $grpEkle, $tabs, $btnTest, $btnOnar, $btnKayit, $btnKaldir, $lblIs))
 $form.AcceptButton = $btnEkle
+
+# Fareyle uzerine gelince dugmenin ne yaptigini soyleyen ipuclari
+$ipucu = New-Object Windows.Forms.ToolTip
+$ipucu.AutoPopDelay = 15000; $ipucu.InitialDelay = 350; $ipucu.ReshowDelay = 100
+$ipucu.SetToolTip($btnAcKapat, "Servisi durdurur ya da başlatır.`nDurdurulunca engelli siteler açılmaz ve servis açılışta da başlamaz.")
+$ipucu.SetToolTip($btnEkle,    "Siteyi listeye ekler ve kurulumu yeniler (birkaç saniye).")
+$ipucu.SetToolTip($btnTest,    "Hattı baştan test edip ayarı yeniden seçer (2-3 dakika).`nEngelli siteler yeniden kapanmaya başladıysa kullan.")
+$ipucu.SetToolTip($btnOnar,    "Kurulum adımlarını yeniden çalıştırır: servis, DNS kuralı, tarayıcı ayarı, doğrulama.`nSeçili ayarı değiştirmez.")
+$ipucu.SetToolTip($btnKayit,   "Son kurulumun kaydını Not Defteri'nde açar: hangi ayar seçildi, doğrulama geçti mi.`nBir şey çalışmadığında nedenine buradan bakılır.")
+$ipucu.SetToolTip($btnKaldir,  "dpi-lite'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
+
 $islemDugmeleri = @($btnAcKapat, $btnEkle, $sElle.Dugme, $sOto.Dugme, $sHaric.Dugme, $btnTest, $btnOnar, $btnKaldir)
 
 # ---- durum gosterimi ---------------------------------------------------------------------------

@@ -89,7 +89,10 @@ kurduysan `panel.cmd`) yukarıdaki pencereyi açar:
   eklenenler, otomatik eklenenler, hariç tutulanlar.
 - Engelli site ekler, elle eklenenleri çıkarır.
 - Motorun kendi öğrendiği siteleri gösterir; yanlış gireni çıkarıp hariç tutar.
-- Hattı yeniden test eder ("Yeniden test et"), kurulumu onarır, kurulum kaydını açar, kaldırır.
+- "Yeniden test et" hattı baştan test edip ayarı yeniden seçer; "Onar" kurulum adımlarını yeniden
+  çalıştırır; "Kurulum kaydı" son kurulumun kaydını Not Defteri'nde açar; "Kaldır" her şeyi geri alır.
+  Düğmelerin üzerine gelince ne yaptıkları yazar.
+- "Durdur" servisi kapatır ve açılışta başlamasını da engeller; "Başlat" ikisini geri açar.
 
 Pencere yönetici olarak çalışmaz. Bir düğmeye basınca ilgili betiği yönetici olarak başlatır (Windows onay
 sorar) ve iş bitince durumu yeniler. Yalnızca açıkken çalışır; arka planda bir şey bırakmaz.
@@ -196,7 +199,7 @@ düşük ömür (TTL) denetim kutusunun uzaklığıdır; bir fazlası da geçiyo
   girip girmediğine bak; girdiyse "Çıkar ve hariç tut".
 - **Engelli siteler yeniden kapandı:** pencerede servisin çalıştığına bak, sonra "Yeniden test et". ISS
   denetim kutusunu değiştirmiş olabilir.
-- **Kurulum doğrulamayı geçemedi:** pencerede "Kayıt" kurulum kaydını açar; "Onar" kurulumu yeniden dener.
+- **Kurulum doğrulamayı geçemedi:** pencerede "Kurulum kaydı" kaydı açar; "Onar" kurulumu yeniden dener.
   Servis başlamıyorsa antivirüs WinDivert sürücüsünü engelliyor olabilir.
 - **Discord "Starting..." ekranında kalıyor:** sistem tepsisinden Discord'dan tamamen çıkıp yeniden aç.
 - **Bir şey bozuldu ve nedenini bilmiyorsun:** pencereden servisi durdur. Sorun sürüyorsa bu kurulumdan

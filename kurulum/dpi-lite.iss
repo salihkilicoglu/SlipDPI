@@ -39,6 +39,8 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 InfoBeforeFile=bilgi.txt
+SetupIconFile={#Kaynak}\dpi-lite.ico
+UninstallDisplayIcon={app}\dpi-lite.ico
 UninstallDisplayName=dpi-lite
 CloseApplications=no
 RestartApplications=no
@@ -58,19 +60,23 @@ Source: "{#Kaynak}\lists\haric.txt";    DestDir: "{app}\lists";    Flags: onlyif
 Source: "{#Kaynak}\licenses\*";         DestDir: "{app}\licenses"; Flags: ignoreversion
 Source: "{#Kaynak}\*.ps1";              DestDir: "{app}";          Flags: ignoreversion
 Source: "{#Kaynak}\*.cmd";              DestDir: "{app}";          Flags: ignoreversion
+Source: "{#Kaynak}\dpi-lite.ico";       DestDir: "{app}";          Flags: ignoreversion
 Source: "{#Kaynak}\README.md";          DestDir: "{app}";          Flags: ignoreversion
 Source: "{#Kaynak}\UCUNCU-TARAF.md";    DestDir: "{app}";          Flags: ignoreversion
 Source: "{#Kaynak}\LICENSE";            DestDir: "{app}";          Flags: ignoreversion
 
+[Tasks]
+Name: "masaustu"; Description: "{cm:CreateDesktopIcon}"; Flags: unchecked
+
 [Icons]
-Name: "{group}\Site ekle";            Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\site-ekle.ps1"""; WorkingDir: "{app}"
-Name: "{group}\Otomatik liste";       Filename: "{app}\otomatik-liste.cmd"; WorkingDir: "{app}"
-Name: "{group}\Durum";                Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\ac-kapat.ps1"" -Durum"; WorkingDir: "{app}"
-Name: "{group}\Aç - Kapat";           Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\ac-kapat.ps1"""; WorkingDir: "{app}"
-Name: "{group}\Yeniden kur (onar)";   Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\kur.ps1"""; WorkingDir: "{app}"
-Name: "{group}\Strateji testi";       Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\strateji-test.ps1"""; WorkingDir: "{app}"
+; Kontrol penceresi: durum, ac/kapat, site ekle/cikar, yeniden test, onar ve kaldir hepsi buradan.
+Name: "{group}\dpi-lite";             Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized
+Name: "{autodesktop}\dpi-lite";       Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized; Tasks: masaustu
 Name: "{group}\Kullanım kılavuzu";    Filename: "{win}\notepad.exe"; Parameters: """{app}\README.md"""
 Name: "{group}\dpi-lite'ı kaldır";    Filename: "{uninstallexe}"
+
+[Run]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; Description: "dpi-lite kontrol penceresini aç"; Flags: postinstall nowait skipifsilent runasoriginaluser runminimized
 
 [UninstallRun]
 Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\kaldir.ps1"" -Sessiz"; Flags: waituntilterminated; RunOnceId: "dpilite-kaldir"
@@ -110,6 +116,6 @@ begin
     else if rc <> 0 then
       MsgBox('Kurulum adımları tam tamamlanamadı (kod ' + IntToStr(rc) + ').' + #13#10 + #13#10 +
              'Ayrıntı: ' + ExpandConstant('{app}\yerel\kur.log') + #13#10 +
-             'Başlat menüsündeki "Yeniden kur (onar)" ile tekrar denenebilir.', mbError, MB_OK);
+             'dpi-lite penceresindeki "Onar" düğmesiyle tekrar denenebilir.', mbError, MB_OK);
   end;
 end;

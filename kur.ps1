@@ -14,9 +14,11 @@
 #
 # Geri alma: kaldir.ps1
 #
-# -Kurulumdan: kurulum programi (setup.exe) bu anahtarla cagirir. Betik sonunda pencereyi hemen
-# kapatmaz ve sonucu cikis koduyla bildirir (0 = tamam, 1 = durdu, 2 = dogrulama tam gecmedi).
-param([switch]$Kurulumdan)
+# -Kurulumdan : kurulum programi ve kontrol penceresi bu anahtarla cagirir. Betik sonunda pencereyi
+#               hemen kapatmaz ve sonucu cikis koduyla bildirir (0 = tamam, 1 = durdu, 2 = dogrulama
+#               tam gecmedi).
+# -YenidenTest: kayitli strateji secimini kenara alir, hatti bastan test edip yeniden secer.
+param([switch]$Kurulumdan, [switch]$YenidenTest)
 
 # ---- AYAR --------------------------------------------------------------------------------------
 # Listelerdeki adlar icin DNS. Google: istemci konumunu ilettigi icin yakin sunucu dondurur.
@@ -37,8 +39,10 @@ $QuicTekrar     = 4
 # ------------------------------------------------------------------------------------------------
 
 . (Join-Path $PSScriptRoot 'ortak.ps1')
-AltmisDort-Bit $PSCommandPath $(if ($Kurulumdan) { '-Kurulumdan' } else { '' })
-if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
+$ek = @(); if ($Kurulumdan) { $ek += '-Kurulumdan' }; if ($YenidenTest) { $ek += '-YenidenTest' }
+AltmisDort-Bit $PSCommandPath ($ek -join ' ')
+# (Kendi kendine yukseltirken -Kurulumdan iletilmez: o pencere zaten acik kalir.)
+if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath $(if ($YenidenTest) { '-YenidenTest' } else { '' }); return }
 
 $root  = $PSScriptRoot
 $yerel = Yerel-Klasor $root
@@ -146,6 +150,10 @@ if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDivert') {
 # ---- 2) strateji -------------------------------------------------------------------------------
 Say '2/7  Strateji'
 $stratDosya = Join-Path $yerel 'strateji.json'
+if ($YenidenTest -and (Test-Path $stratDosya)) {
+    Move-Item $stratDosya (Join-Path $yerel 'strateji.onceki.json') -Force
+    Write-Host 'Onceki secim kenara alindi (strateji.onceki.json); hat yeniden test edilecek.'
+}
 if (-not (Test-Path $stratDosya)) {
     Write-Host 'Bu hat icin strateji secilmemis; strateji testi calistiriliyor (birkac dakika surer)...'
     try { & (Join-Path $root 'strateji-test.ps1') -Icerden } catch { Fail "Strateji testi calismadi: $($_.Exception.Message)" }

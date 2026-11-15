@@ -32,8 +32,8 @@ Uygulamaya göre değil alan adına göre çalışır: tarayıcı, Discord ya da
 Üç yol var; üçü de aynı kurulum betiğini (`kur.ps1`) çalıştırır.
 
 1. **Kurulum programı:** Releases sayfasından `dpi-lite-kurulum-<sürüm>.exe` dosyasını indirip çalıştır.
-   Dosyaları `C:\Program Files\dpi-lite` altına kurar, Başlat menüsüne kısayollar ekler ve
-   "Uygulamalar" listesine kaldırma girdisi koyar.
+   Dosyaları `C:\Program Files\dpi-lite` altına kurar, Başlat menüsüne "dpi-lite" kontrol penceresini
+   ekler ve "Uygulamalar" listesine kaldırma girdisi koyar.
 2. **Zip:** `dpi-lite-<sürüm>.zip` dosyasını indir, bir klasöre aç, `kur.cmd` dosyasına çift tıkla.
 3. **Depodan:** depoyu klonla, `kur.cmd` dosyasına çift tıkla ya da komut satırından:
 
@@ -71,8 +71,22 @@ Kaldırma bunların hepsini geri alır: kurulum programıyla kurulduysa "Ayarlar
 Kaldır", zip ya da depodan kurulduysa `kaldir.cmd`. Değiştirilen ayarların eski değerleri
 `C:\Program Files\dpi-lite\durum.json` dosyasında tutulur.
 
-Kurulum programıyla kurulduğunda betikler ve listeler de `C:\Program Files\dpi-lite` altındadır; aşağıdaki
-komutlara Başlat menüsündeki "dpi-lite" klasöründen ulaşılır.
+Kurulum programıyla kurulduğunda betikler ve listeler de `C:\Program Files\dpi-lite` altındadır.
+
+## Kontrol penceresi
+
+![dpi-lite kontrol penceresi](docs/panel.png)
+
+Başlat menüsündeki "dpi-lite" kısayolu (zip ya da depodan kurulduysa `panel.cmd`) küçük bir pencere açar:
+
+- Servisin durumunu, seçili ayarı ve DNS'i gösterir; servisi durdurup başlatır.
+- Engelli site ekler, elle eklenenleri çıkarır.
+- Motorun kendi öğrendiği siteleri gösterir; yanlış gireni çıkarıp hariç tutar.
+- Hattı yeniden test eder ("Yeniden test et"), kurulumu onarır, kaydı açar, kaldırır.
+
+Pencere yönetici olarak çalışmaz. Bir düğmeye basınca ilgili betiği yönetici olarak başlatır (Windows onay
+sorar) ve iş bitince durumu yeniler. Yalnızca açıkken çalışır; arka planda bir şey bırakmaz.
+Aşağıdaki betikler aynı işleri komut satırından yapar.
 
 ## Listeler
 
@@ -100,17 +114,18 @@ Yönetici izni gerekenler kendisi UAC penceresi açar.
 
 | Betik | İş |
 |---|---|
-| `kur.ps1` | Kurar ya da yeniden kurar, sonunda kendini doğrular |
+| `panel.ps1` | Kontrol penceresini açar |
+| `kur.ps1` | Kurar ya da yeniden kurar, sonunda kendini doğrular; `-YenidenTest` ile hattı baştan test eder |
 | `kaldir.ps1` | Her şeyi geri alır |
 | `ac-kapat.ps1` | Servisi durdurur ya da başlatır; `-Durum` ile yalnızca durumu gösterir |
-| `site-ekle.ps1 ornek.com` | Listeye site ekler ve kurulumu yeniler |
-| `otomatik-liste.ps1` | Motorun eklediklerini gösterir; `-Sil ornek.com` ile çıkarıp hariç tutar |
+| `site-ekle.ps1 ornek.com` | Listeye site ekler ve kurulumu yeniler; `-Cikar` ile listeden çıkarır |
+| `otomatik-liste.ps1` | Motorun eklediklerini gösterir; `-Sil ornek.com` ile çıkarıp hariç tutar, `-HaricSil ornek.com` ile hariç listesinden geri alır |
 | `strateji-test.ps1` | Stratejiyi yeniden test edip seçer; uygulamak için ardından `kur.ps1` |
 | `olc.ps1 -Etiket once` | Ping, TLS süresi, indirme ve yükleme hızını ölçer |
 
 Çalıştırma: `powershell -ExecutionPolicy Bypass -File <betik>`
 
-Çift tıklamayla: `kur.cmd`, `kaldir.cmd`, `otomatik-liste.cmd`. Bir `.ps1` dosyasına sağ tıklayıp
+Çift tıklamayla: `panel.cmd`, `kur.cmd`, `kaldir.cmd`, `otomatik-liste.cmd`. Bir `.ps1` dosyasına sağ tıklayıp
 "PowerShell ile çalıştır" demek de olur; bilgi gösteren betikler pencereyi kapatmadan önce Enter bekler.
 Otomatik liste düz bir metin dosyasıdır, Not Defteri'yle de açılır:
 `C:\Program Files\dpi-lite\otomatik.txt`

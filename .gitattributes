@@ -4,9 +4,12 @@
 *.exe binary
 *.dll binary
 *.sys binary
+*.ico binary
+*.png binary
 
-# Dagitim paketine (git archive) girmeyenler: yalnizca gelistirici icin
+# Dagitim paketine (git archive) girmeyenler: yalnizca gelistirici / GitHub sayfasi icin
 kurulum/        export-ignore
+docs/           export-ignore
 paketle.ps1     export-ignore
 .gitattributes  export-ignore
 .gitignore      export-ignore

@@ -12,6 +12,7 @@ param([switch]$Sessiz)
 AltmisDort-Bit $PSCommandPath $(if ($Sessiz) { '-Sessiz' } else { '' })
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
 
+HizliDuzenleme-Kapat      # pencereye tiklaninca kaldirma donmasin
 $kuruluDuzen = Kurulu-Duzen $PSScriptRoot
 # Kurulu duzende yerel\ klasoru de silinecegi icin kayit gecici klasore yazilir.
 if ($kuruluDuzen) { $logYol = Join-Path $env:TEMP 'dpi-lite-kaldir.log' } else { $logYol = Join-Path (Yerel-Klasor $PSScriptRoot) 'kaldir.log' }

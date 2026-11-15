@@ -20,7 +20,7 @@ $bin    = Join-Path $root 'bin'
 $winws  = Join-Path $bin  'winws.exe'
 $logDir = Join-Path $yerel 'test-log'
 New-Item -ItemType Directory -Force $logDir | Out-Null
-if (-not $Icerden) { Start-Transcript -Path (Join-Path $yerel 'strateji-test.log') -Force | Out-Null }
+if (-not $Icerden) { HizliDuzenleme-Kapat; Start-Transcript -Path (Join-Path $yerel 'strateji-test.log') -Force | Out-Null }
 
 function Bitir($msg) {
     if ($msg) { Write-Host $msg -ForegroundColor Yellow }

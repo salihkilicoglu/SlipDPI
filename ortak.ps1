@@ -43,6 +43,24 @@ function AltmisDort-Bit($betik, $ek) {
     exit $p.ExitCode
 }
 
+# Klasik konsol penceresinin icine tiklaninca Windows "secim" moduna gecer (baslikta "Select" / "Sec"
+# gorunur) ve betik ekrana yazi yazmaya calistigi anda donar; Enter ya da Esc'e basilana kadar bekler.
+# Uzun suren betikler basta bunu cagirir: hizli duzenleme (QuickEdit) modunu bu pencere icin kapatir.
+function HizliDuzenleme-Kapat {
+    try {
+        if (-not ('DpiLite.Konsol' -as [type])) {
+            Add-Type -Namespace DpiLite -Name Konsol -MemberDefinition '[DllImport("kernel32.dll")] public static extern IntPtr GetStdHandle(int n); [DllImport("kernel32.dll")] public static extern bool GetConsoleMode(IntPtr h, out uint mode); [DllImport("kernel32.dll")] public static extern bool SetConsoleMode(IntPtr h, uint mode);'
+        }
+        $h = [DpiLite.Konsol]::GetStdHandle(-10)                       # STD_INPUT_HANDLE
+        [uint32]$mod = 0
+        if ([DpiLite.Konsol]::GetConsoleMode($h, [ref]$mod)) {
+            # ENABLE_QUICK_EDIT_MODE (0x40) kapali, ENABLE_EXTENDED_FLAGS (0x80) acik
+            [uint32]$yeni = ($mod -band [uint32]4294967231) -bor [uint32]128
+            [void][DpiLite.Konsol]::SetConsoleMode($h, $yeni)
+        }
+    } catch { }
+}
+
 # Betik Dosya Gezgini'nden ("PowerShell ile calistir") acildiysa pencere is bitince hemen kapanir.
 # Yalnizca o durumda, cikti okunabilsin diye Enter bekler. Terminalden ya da baska bir betikten
 # calistirildiginda, cikti yonlendirildiginde ve -NoExit ile acildiginda beklemez.

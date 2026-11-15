@@ -44,6 +44,7 @@ AltmisDort-Bit $PSCommandPath ($ek -join ' ')
 # (Kendi kendine yukseltirken -Kurulumdan iletilmez: o pencere zaten acik kalir.)
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath $(if ($YenidenTest) { '-YenidenTest' } else { '' }); return }
 
+HizliDuzenleme-Kapat      # pencereye tiklaninca kurulum donmasin
 $root  = $PSScriptRoot
 $yerel = Yerel-Klasor $root
 Start-Transcript -Path (Join-Path $yerel 'kur.log') -Force | Out-Null

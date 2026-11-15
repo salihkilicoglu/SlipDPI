@@ -73,8 +73,8 @@ Name: "masaustu";     Description: "Masaüstüne kısayol ekle";      GroupDescr
 
 [Icons]
 ; Kontrol penceresi: durum, durdur/baslat, site ekle/cikar, yeniden test, onar ve kaldir hepsi buradan.
-Name: "{group}\dpi-lite";             Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized; Tasks: baslatmenusu
-Name: "{group}\dpi-lite'ı kaldır";    Filename: "{uninstallexe}"; Tasks: baslatmenusu
+; Baslat menusunde klasor yok, tek kisayol: kilavuz ve kaldirma pencerenin icinde.
+Name: "{autoprograms}\dpi-lite";      Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized; Tasks: baslatmenusu
 Name: "{autodesktop}\dpi-lite";       Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized; Tasks: masaustu
 
 [Run]
@@ -83,6 +83,7 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile
 ; Ustune kurulumda onceki kisayollari sil; ardindan yalnizca bu kurulumda secilenler yeniden olusturulur.
 [InstallDelete]
 Type: filesandordirs; Name: "{group}"
+Type: files;          Name: "{autoprograms}\dpi-lite.lnk"
 Type: files;          Name: "{autodesktop}\dpi-lite.lnk"
 
 [UninstallRun]

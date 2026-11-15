@@ -198,7 +198,9 @@ $exe = "$Hedef\bin\winws.exe"
 foreach ($f in 'winws.exe', 'WinDivert.dll', 'WinDivert64.sys', 'cygwin1.dll') {
     if (-not (Test-Path (Join-Path "$Hedef\bin" $f))) { Fail "Kurulu klasorde motor dosyasi eksik: $Hedef\bin\$f" }
 }
-Write-Host $engineArgs
+# Motorun tam komut satiri uzun ve okunaksiz oldugu icin ekrana degil dosyaya yazilir.
+Set-Content -Path (Join-Path $yerel 'motor-ayari.txt') -Value $engineArgs -Encoding ASCII
+Write-Host ("Kurallar: {0}   (tam komut satiri: {1})" -f $profiller.Count, (Join-Path $yerel 'motor-ayari.txt'))
 $dry = Start-Process -FilePath $exe -ArgumentList "$engineArgs --dry-run" -WorkingDirectory "$Hedef\bin" -NoNewWindow -Wait -PassThru `
         -RedirectStandardOutput (Join-Path $yerel 'kur-dryrun.out.txt') -RedirectStandardError (Join-Path $yerel 'kur-dryrun.err.txt')
 if ($dry.ExitCode -ne 0) {

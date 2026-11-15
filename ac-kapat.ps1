@@ -6,8 +6,8 @@ param([switch]$Durum)
 
 . (Join-Path $PSScriptRoot 'ortak.ps1')
 $svc = Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue
-if (-not $svc) { Write-Host 'dpi-lite kurulu degil. Once kur.ps1 calistir.'; return }
-if ($Durum) { Write-Host "dpi-lite: $($svc.Status)   baslangic: $($svc.StartType)"; return }
+if (-not $svc) { Write-Host 'dpi-lite kurulu degil. Once kur.ps1 calistir.'; Kapanmadan-Bekle; return }
+if ($Durum) { Write-Host "dpi-lite: $($svc.Status)   baslangic: $($svc.StartType)"; Kapanmadan-Bekle; return }
 
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
 if ($svc.Status -eq 'Running') {

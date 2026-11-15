@@ -28,6 +28,21 @@ function Yukselt($betik, $ek) {
 
 function Say($t) { Write-Host "`n== $t ==" -ForegroundColor Cyan }
 
+# Betik Dosya Gezgini'nden ("PowerShell ile calistir") acildiysa pencere is bitince hemen kapanir.
+# Yalnizca o durumda, cikti okunabilsin diye Enter bekler. Terminalden ya da baska bir betikten
+# calistirildiginda, cikti yonlendirildiginde ve -NoExit ile acildiginda beklemez.
+function Kapanmadan-Bekle {
+    try {
+        if ([Console]::IsOutputRedirected -or [Console]::IsInputRedirected) { return }
+        $cmd = [Environment]::GetCommandLineArgs() -join ' '
+        if ($cmd -match '(?i)-noexit' -or $cmd -notmatch '(?i)\.ps1') { return }
+        $ust = (Get-CimInstance Win32_Process -Filter "ProcessId=$PID" -ErrorAction Stop).ParentProcessId
+        if ((Get-Process -Id $ust -ErrorAction Stop).ProcessName -ne 'explorer') { return }
+        Write-Host ''
+        Read-Host 'Kapatmak icin Enter' | Out-Null
+    } catch { }
+}
+
 # Makineye ozel dosyalar (secilen strateji, kayitlar, olcumler) burada durur; git'e girmez.
 function Yerel-Klasor($root) {
     $y = Join-Path $root 'yerel'

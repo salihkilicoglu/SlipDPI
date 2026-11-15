@@ -95,6 +95,11 @@ Yönetici izni gerekenler kendisi UAC penceresi açar.
 
 Çalıştırma: `powershell -ExecutionPolicy Bypass -File <betik>`
 
+Çift tıklamayla: `kur.cmd`, `kaldir.cmd`, `otomatik-liste.cmd`. Bir `.ps1` dosyasına sağ tıklayıp
+"PowerShell ile çalıştır" demek de olur; bilgi gösteren betikler pencereyi kapatmadan önce Enter bekler.
+Otomatik liste düz bir metin dosyasıdır, Not Defteri'yle de açılır:
+`C:\Program Files\dpi-lite\otomatik.txt`
+
 ## Ayarlar
 
 `kur.ps1` dosyasının başındaki `AYAR` bölümünde:

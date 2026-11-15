@@ -9,18 +9,20 @@ param([string]$Sil)
 . (Join-Path $PSScriptRoot 'ortak.ps1')
 
 if (-not $Sil) {
-    if (-not (Test-Path $AutoListe)) { Write-Host 'Otomatik liste yok (dpi-lite kurulu degil).'; return }
+    if (-not (Test-Path $AutoListe)) { Write-Host 'Otomatik liste yok (dpi-lite kurulu degil).'; Kapanmadan-Bekle; return }
     $l = @(Satirlar $AutoListe)
     Write-Host ("Otomatik listede {0} alan adi var:" -f $l.Count) -ForegroundColor Cyan
     $l | ForEach-Object { Write-Host "  $_" }
     $h = @(Satirlar (Join-Path $PSScriptRoot 'lists\haric.txt'))
     Write-Host ("`nHaric tutulanlar ({0}): {1}" -f $h.Count, ($h -join ', ')) -ForegroundColor Cyan
-    Write-Host "`nNe zaman ve neden eklendigi: $AutoKayit"
+    Write-Host "`nListe dosyasi: $AutoListe"
+    Write-Host "Ne zaman ve neden eklendigi: $AutoKayit"
+    Kapanmadan-Bekle
     return
 }
 
 $d = $Sil.Trim().ToLowerInvariant() -replace '^https?://', '' -replace '/.*$', '' -replace '^www\.', ''
-if ($d -notmatch '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$') { Write-Host "Gecersiz alan adi: $Sil" -ForegroundColor Red; return }
+if ($d -notmatch '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$') { Write-Host "Gecersiz alan adi: $Sil" -ForegroundColor Red; Kapanmadan-Bekle; return }
 
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath "-Sil $d"; return }
 

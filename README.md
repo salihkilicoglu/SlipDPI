@@ -61,6 +61,7 @@ Pencere yalnızca açıkken çalışır; kapatınca program arka planda çalış
 - **Yeniden test et:** hattı baştan test edip ayarı yeniden seçer. Engelli siteler yeniden kapanırsa kullan.
 - **Onar:** kurulum adımlarını yeniden çalıştırır.
 - **Kurulum kaydı:** son kurulumun kaydını açar.
+- **Kılavuz:** bu belgeyi açar.
 - **Kaldır:** programı kaldırır.
 
 Düğmelerin üzerine gelince ne yaptıkları yazar. "Yeniden test et" ve "Onar" listeleri silmez.

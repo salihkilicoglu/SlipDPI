@@ -28,4 +28,4 @@ BİLMENİZ GEREKENLER
   - Bazı antivirüsler WinDivert sürücüsünü engeller.
   - Sonraki sayfada Başlat menüsü ve masaüstü kısayolu isteyip istemediğiniz sorulur.
   - Kurulumdan sonra "dpi-lite" kontrol penceresinden durumu görebilir, site ekleyip çıkarabilir, servisi durdurup başlatabilirsiniz. Kısayol seçmediyseniz pencere C:\Program Files\dpi-lite\panel.cmd ile açılır.
-  - Ayrıntılar kurulum klasöründeki README.md dosyasındadır (Başlat menüsünde "Kullanım kılavuzu").
+  - Kullanım kılavuzu kontrol penceresindeki "Kılavuz" düğmesiyle açılır.

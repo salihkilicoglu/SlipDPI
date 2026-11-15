@@ -112,11 +112,12 @@ $sHaric = Sekme 'Hariç tutulanlar'    'Geri al'            'Buradaki sitelere h
 $btnTest   = Yeni 'Button' 'Yeniden test et' 16 514 126 30
 $btnOnar   = Yeni 'Button' 'Onar'            150 514 86 30
 $btnKayit  = Yeni 'Button' 'Kurulum kaydı'   244 514 112 30
+$btnKilavuz = Yeni 'Button' 'Kılavuz'        364 514 86 30
 $btnKaldir = Yeni 'Button' 'Kaldır'          458 514 86 30
 $lblIs = Yeni 'Label' 'Hazır.' 18 556 526 20
 $lblIs.ForeColor = $Gri
 
-$form.Controls.AddRange(@($lblBaslik, $lblNokta, $lblDurum, $lblBilgi, $btnAcKapat, $grpEkle, $tabs, $btnTest, $btnOnar, $btnKayit, $btnKaldir, $lblIs))
+$form.Controls.AddRange(@($lblBaslik, $lblNokta, $lblDurum, $lblBilgi, $btnAcKapat, $grpEkle, $tabs, $btnTest, $btnOnar, $btnKayit, $btnKilavuz, $btnKaldir, $lblIs))
 $form.AcceptButton = $btnEkle
 
 # Fareyle uzerine gelince dugmenin ne yaptigini soyleyen ipuclari
@@ -127,7 +128,8 @@ $ipucu.SetToolTip($btnEkle,    "Siteyi listeye ekler ve kurulumu yeniler (birka�
 $ipucu.SetToolTip($btnTest,    "Hattı baştan test edip ayarı yeniden seçer (2-3 dakika).`nEngelli siteler yeniden kapanmaya başladıysa kullan.")
 $ipucu.SetToolTip($btnOnar,    "Kurulum adımlarını yeniden çalıştırır: servis, DNS kuralı, tarayıcı ayarı, doğrulama.`nSeçili ayarı değiştirmez.")
 $ipucu.SetToolTip($btnKayit,   "Son kurulumun kaydını Not Defteri'nde açar: hangi ayar seçildi, doğrulama geçti mi.`nBir şey çalışmadığında nedenine buradan bakılır.")
-$ipucu.SetToolTip($btnKaldir,  "dpi-lite'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
+$ipucu.SetToolTip($btnKilavuz, "Kullanım kılavuzunu Not Defteri'nde açar.")
+$ipucu.SetToolTip($btnKaldir, "dpi-lite'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
 
 $islemDugmeleri = @($btnAcKapat, $btnEkle, $sElle.Dugme, $sOto.Dugme, $sHaric.Dugme, $btnTest, $btnOnar, $btnKaldir)
 
@@ -228,6 +230,12 @@ $btnKayit.Add_Click({
     $log = Join-Path $root 'yerel\kur.log'
     if (Test-Path $log) { Start-Process notepad.exe -ArgumentList "`"$log`"" }
     else { [void][Windows.Forms.MessageBox]::Show($form, 'Henüz bir kurulum kaydı yok.', 'dpi-lite', 'OK', 'Information') }
+})
+
+$btnKilavuz.Add_Click({
+    $kilavuz = Join-Path $root 'README.md'
+    if (Test-Path $kilavuz) { Start-Process notepad.exe -ArgumentList "`"$kilavuz`"" }
+    else { [void][Windows.Forms.MessageBox]::Show($form, 'Kılavuz dosyası (README.md) bulunamadı.', 'dpi-lite', 'OK', 'Information') }
 })
 
 $btnKaldir.Add_Click({

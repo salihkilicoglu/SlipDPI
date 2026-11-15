@@ -4,3 +4,9 @@
 *.exe binary
 *.dll binary
 *.sys binary
+
+# Dagitim paketine (git archive) girmeyenler: yalnizca gelistirici icin
+kurulum/        export-ignore
+paketle.ps1     export-ignore
+.gitattributes  export-ignore
+.gitignore      export-ignore

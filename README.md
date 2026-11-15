@@ -29,9 +29,20 @@ Uygulamaya göre değil alan adına göre çalışır: tarayıcı, Discord ya da
 
 ## Kurulum
 
-Depoyu indir ya da klonla, sonra `kur.cmd` dosyasına çift tıkla. Komut satırından:
+Üç yol var; üçü de aynı kurulum betiğini (`kur.ps1`) çalıştırır.
 
-    powershell -ExecutionPolicy Bypass -File kur.ps1
+1. **Kurulum programı:** Releases sayfasından `dpi-lite-kurulum-<sürüm>.exe` dosyasını indirip çalıştır.
+   Dosyaları `C:\Program Files\dpi-lite` altına kurar, Başlat menüsüne kısayollar ekler ve
+   "Uygulamalar" listesine kaldırma girdisi koyar.
+2. **Zip:** `dpi-lite-<sürüm>.zip` dosyasını indir, bir klasöre aç, `kur.cmd` dosyasına çift tıkla.
+3. **Depodan:** depoyu klonla, `kur.cmd` dosyasına çift tıkla ya da komut satırından:
+
+       powershell -ExecutionPolicy Bypass -File kur.ps1
+
+Kurulum programı imzasızdır. Windows indirilen dosyayı ilk çalıştırmada "Windows kişisel bilgisayarınızı
+korudu" uyarısıyla durdurur; "Ek bilgi" → "Yine de çalıştır" ile devam edilir. İçinde WinDivert sürücüsü
+olduğu için bazı antivirüsler de uyarı verebilir. İndirdiğin dosyanın özetini Releases sayfasındaki
+`SHA256SUMS.txt` ile karşılaştırabilirsin (`Get-FileHash <dosya>`).
 
 Kurulum şunları yapar ve her adımı ekrana, ayrıca `yerel\kur.log` dosyasına yazar:
 
@@ -56,8 +67,12 @@ Aynı betik üstüne kurulum için de kullanılır; ayar ya da liste değiştiğ
 | Şifreli DNS | Düz sorgu kesiliyorsa bu iki sunucu için DoH zorunlu kılınır (Windows 11) |
 | Tarayıcı politikası | `HKLM\SOFTWARE\Policies\Google\Chrome`: `DnsOverHttpsMode`, `DnsOverHttpsTemplates` |
 
-`kaldir.cmd` (ya da `kaldir.ps1`) bunların hepsini geri alır. Değiştirilen ayarların eski değerleri
+Kaldırma bunların hepsini geri alır: kurulum programıyla kurulduysa "Ayarlar → Uygulamalar → dpi-lite →
+Kaldır", zip ya da depodan kurulduysa `kaldir.cmd`. Değiştirilen ayarların eski değerleri
 `C:\Program Files\dpi-lite\durum.json` dosyasında tutulur.
+
+Kurulum programıyla kurulduğunda betikler ve listeler de `C:\Program Files\dpi-lite` altındadır; aşağıdaki
+komutlara Başlat menüsündeki "dpi-lite" klasöründen ulaşılır.
 
 ## Listeler
 
@@ -147,6 +162,12 @@ kanıtlanamadı.
 
 Başka ISS'lerde (Superonline, Vodafone, TurkNet, Kablonet, mobil hatlar) denenmedi. Strateji testi her
 hatta kendi seçimini yapacak şekilde yazıldı, ama orada çalıştığı doğrulanmadı.
+
+## Dağıtım dosyalarını üretmek
+
+`paketle.ps1 -Surum x.y.z`, son commit'ten `cikti\` klasörüne zip'i, kurulum programını ve özetlerini
+üretir. Inno Setup 6 gerekir (`winget install JRSoftware.InnoSetup`). Kurulum programının tanımı
+`kurulum\dpi-lite.iss` dosyasındadır.
 
 ## Lisans ve üçüncü taraf bileşenler
 

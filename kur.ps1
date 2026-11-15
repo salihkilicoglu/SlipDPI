@@ -13,6 +13,10 @@
 #   6) Baglanip sonucu dogrular, otomatik listenin ogrendigini sinar; yerel\kur.log dosyasina yazar.
 #
 # Geri alma: kaldir.ps1
+#
+# -Kurulumdan: kurulum programi (setup.exe) bu anahtarla cagirir. Betik sonunda pencereyi hemen
+# kapatmaz ve sonucu cikis koduyla bildirir (0 = tamam, 1 = durdu, 2 = dogrulama tam gecmedi).
+param([switch]$Kurulumdan)
 
 # ---- AYAR --------------------------------------------------------------------------------------
 # Listelerdeki adlar icin DNS. Google: istemci konumunu ilettigi icin yakin sunucu dondurur.
@@ -33,13 +37,19 @@ $QuicTekrar     = 4
 # ------------------------------------------------------------------------------------------------
 
 . (Join-Path $PSScriptRoot 'ortak.ps1')
+AltmisDort-Bit $PSCommandPath $(if ($Kurulumdan) { '-Kurulumdan' } else { '' })
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
 
 $root  = $PSScriptRoot
 $yerel = Yerel-Klasor $root
 Start-Transcript -Path (Join-Path $yerel 'kur.log') -Force | Out-Null
 function Q($p) { '"' + $p + '"' }
-function Fail($msg) { Write-Host "`nDURDU: $msg" -ForegroundColor Red; Stop-Transcript | Out-Null; throw "dpi-lite kurulumu durdu: $msg" }
+function Fail($msg) {
+    Write-Host "`nDURDU: $msg" -ForegroundColor Red
+    Stop-Transcript | Out-Null
+    if ($Kurulumdan) { Read-Host "`nKapatmak icin Enter" | Out-Null; exit 1 }
+    throw "dpi-lite kurulumu durdu: $msg"
+}
 
 function Probe($url, $name, $ip) {
     $a = @('-s', '-o', 'NUL', '-w', '%{http_code}|%{time_appconnect}|%{exitcode}', '--ssl-no-revoke', '--connect-timeout', '4', '--max-time', '8')
@@ -151,10 +161,14 @@ if ($Ttl -le 0) { Write-Host 'Bu strateji TTL kullanmiyor; QUIC ve ses kurallari
 # ---- 3) dosyalar -------------------------------------------------------------------------------
 Say '3/7  Dosyalar'
 New-Item -ItemType Directory -Force $Hedef | Out-Null
-foreach ($d in 'bin', 'filters', 'lists') { Esitle (Join-Path $root $d) (Join-Path $Hedef $d) }
+if (Kurulu-Duzen $root) {
+    Write-Host "Paket kurulum programiyla bu klasore kurulmus; kopyalama gerekmiyor: $Hedef"
+} else {
+    foreach ($d in 'bin', 'filters', 'lists') { Esitle (Join-Path $root $d) (Join-Path $Hedef $d) }
+    Write-Host "Esitlendi: $Hedef"
+}
 # otomatik liste yeniden kurulumlarda korunur; yoksa bos olusturulur
 if (-not (Test-Path $AutoListe)) { Set-Content -Path $AutoListe -Value $null -Encoding ASCII }
-Write-Host "Esitlendi: $Hedef"
 Write-Host ("Otomatik listede su an {0} alan adi var." -f @(Satirlar $AutoListe).Count)
 
 # ---- 4) motor ayari ve servis ------------------------------------------------------------------
@@ -321,9 +335,15 @@ Write-Host ("Otomatik listede {0} alan adi var." -f @(Satirlar $AutoListe).Count
 
 Say 'OZET'
 Write-Host ("Engelli adresler: {0}/{1} acik     Kontrol adresleri: {2}/{3} acik     DNS seviyesi: {4}     Otomatik liste testi: {5}" -f $bOk, $blocked.Count, $cOk, $controls.Count, $seviye, $autoSonuc)
-if ($bOk -eq $blocked.Count -and $cOk -eq $controls.Count -and ('ogrendi', 'zaten', 'atlandi', 'engelsiz') -contains $autoSonuc) {
+$tamam = ($bOk -eq $blocked.Count -and $cOk -eq $controls.Count -and ('ogrendi', 'zaten', 'atlandi', 'engelsiz') -contains $autoSonuc)
+if ($tamam) {
     Write-Host 'Kurulum tamam.' -ForegroundColor Green
 } else {
-    Write-Host 'Kurulum bitti ama dogrulama tam gecmedi. Ayrinti: yerel\kur.log' -ForegroundColor Yellow
+    Write-Host ("Kurulum bitti ama dogrulama tam gecmedi. Ayrinti: " + (Join-Path $yerel 'kur.log')) -ForegroundColor Yellow
 }
 Stop-Transcript | Out-Null
+if ($Kurulumdan) {
+    if ($tamam) { Write-Host "`nBu pencere 8 saniye sonra kapanacak."; Start-Sleep -Seconds 8; exit 0 }
+    Read-Host "`nKapatmak icin Enter" | Out-Null
+    exit 2
+}

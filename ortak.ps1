@@ -28,6 +28,21 @@ function Yukselt($betik, $ek) {
 
 function Say($t) { Write-Host "`n== $t ==" -ForegroundColor Cyan }
 
+# Paket kurulum programiyla dogrudan C:\Program Files\dpi-lite altina kurulduysa $true.
+# Depodan calistirilirken paket baska bir klasordedir ve motor dosyalari oraya kopyalanir.
+function Kurulu-Duzen($root) {
+    [string]::Equals([IO.Path]::GetFullPath($root).TrimEnd('\'), [IO.Path]::GetFullPath($Hedef).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)
+}
+
+# 32 bit PowerShell icinde calisiyorsak (ornegin 32 bit bir kurulum programi baslattiysa) betigi 64 bit
+# PowerShell ile yeniden baslatir. 32 bit surecte Program Files ve kayit defteri baska yere gider.
+function AltmisDort-Bit($betik, $ek) {
+    if ([Environment]::Is64BitProcess -or -not [Environment]::Is64BitOperatingSystem) { return }
+    $ps = Join-Path $env:WINDIR 'Sysnative\WindowsPowerShell\v1.0\powershell.exe'
+    $p = Start-Process -FilePath $ps -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"$betik`" $ek").Trim() -Wait -PassThru -NoNewWindow
+    exit $p.ExitCode
+}
+
 # Betik Dosya Gezgini'nden ("PowerShell ile calistir") acildiysa pencere is bitince hemen kapanir.
 # Yalnizca o durumda, cikti okunabilsin diye Enter bekler. Terminalden ya da baska bir betikten
 # calistirildiginda, cikti yonlendirildiginde ve -NoExit ile acildiginda beklemez.

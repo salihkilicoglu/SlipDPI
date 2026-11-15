@@ -51,7 +51,15 @@ Remove-Item $tmp -Force -ErrorAction SilentlyContinue
 $out.yukleme_mbps = $ul
 
 $json = [pscustomobject]$out | ConvertTo-Json -Depth 5
+# Paket Program Files altina kuruluysa oraya yazilamaz; o durumda sonuc kullanici klasorune gider.
 $yerel = Join-Path $PSScriptRoot 'yerel'
-New-Item -ItemType Directory -Force $yerel | Out-Null
-$json | Set-Content -Path (Join-Path $yerel "olcum-$Etiket.json") -Encoding UTF8
+try {
+    New-Item -ItemType Directory -Force $yerel -ErrorAction Stop | Out-Null
+    $json | Set-Content -Path (Join-Path $yerel "olcum-$Etiket.json") -Encoding UTF8 -ErrorAction Stop
+} catch {
+    $yerel = Join-Path $env:LOCALAPPDATA 'dpi-lite'
+    New-Item -ItemType Directory -Force $yerel | Out-Null
+    $json | Set-Content -Path (Join-Path $yerel "olcum-$Etiket.json") -Encoding UTF8
+}
+Write-Host "Sonuc dosyasi: $(Join-Path $yerel "olcum-$Etiket.json")"
 $json

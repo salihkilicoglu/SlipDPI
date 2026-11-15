@@ -85,6 +85,8 @@ Başlat menüsündeki ya da masaüstündeki "dpi-lite" kısayolu (kısayol seçm
 kurduysan `panel.cmd`) yukarıdaki pencereyi açar:
 
 - Servisin durumunu, seçili ayarı ve DNS'i gösterir; servisi durdurup başlatır.
+- Listeleri dört sekmede gösterir: Discord (kurulumla gelen, her zaman işlenen alan adları), elle
+  eklenenler, otomatik eklenenler, hariç tutulanlar.
 - Engelli site ekler, elle eklenenleri çıkarır.
 - Motorun kendi öğrendiği siteleri gösterir; yanlış gireni çıkarıp hariç tutar.
 - Hattı yeniden test eder ("Yeniden test et"), kurulumu onarır, kurulum kaydını açar, kaldırır.

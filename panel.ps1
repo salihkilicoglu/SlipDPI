@@ -38,7 +38,7 @@ function Durum-Topla {
         Elle      = @(Satirlar $ElleYol)
         Oto       = @(Satirlar $AutoListe)
         Haric     = @(Satirlar $HaricYol)
-        Discord   = @(Satirlar $DiscordYol).Count
+        Discord   = @(Satirlar $DiscordYol)
     }
     if ($st) {
         $d.Strateji = "$($st.strateji)"; if ($st.ttl) { $d.Ttl = [int]$st.ttl }
@@ -97,13 +97,15 @@ function Sekme($baslik, $dugmeMetni, $aciklama) {
     $lb = Yeni 'ListBox' '' 8 8 392 230
     $lb.IntegralHeight = $false
     $bt = Yeni 'Button' $dugmeMetni 408 8 104 44
+    if (-not $dugmeMetni) { $bt.Visible = $false; $lb.Width = 504 }      # salt okunur sekme
     $lbl = Yeni 'Label' $aciklama 8 244 504 34
     $lbl.ForeColor = $Gri
     $tp.Controls.AddRange(@($lb, $bt, $lbl))
     $tabs.TabPages.Add($tp)
     [pscustomobject]@{ Sayfa = $tp; Liste = $lb; Dugme = $bt; Aciklama = $lbl; Baslik = $baslik }
 }
-$sElle  = Sekme 'Elle eklenenler'     'Çıkar'              ''
+$sDiscord = Sekme 'Discord'           ''                   'Discord''un alan adları kurulumla birlikte gelir ve her zaman işlenir; alt adları da kapsanır. Bu liste buradan değiştirilmez.'
+$sElle  = Sekme 'Elle eklenenler'     'Çıkar'              'Kendi eklediğin siteler. Üst alan adını eklemek bütün alt adlarını da kapsar (ornek.com, www.ornek.com, cdn.ornek.com).'
 $sOto   = Sekme 'Otomatik eklenenler' "Çıkar ve`nhariç tut" 'Bir site 60 saniye içinde üç kez açılışta kesilirse motor onu buraya kendisi ekler. Yanlış girdiyse çıkarıp hariç tutabilirsin.'
 $sHaric = Sekme 'Hariç tutulanlar'    'Geri al'            'Buradaki sitelere hiç dokunulmaz ve otomatik eklenmezler.'
 
@@ -152,10 +154,10 @@ function Yenile {
     $ikinci = @($dns, $(if ($d.Kurulum) { "Son kurulum: $($d.Kurulum)" } else { '' })) | Where-Object { $_ }
     $lblBilgi.Text = $ayar + "`n" + ($ikinci -join '   ·   ')
 
+    Liste-Doldur $sDiscord $d.Discord
     Liste-Doldur $sElle  $d.Elle
     Liste-Doldur $sOto   $d.Oto
     Liste-Doldur $sHaric $d.Haric
-    $sElle.Aciklama.Text = "Bunlara ek olarak Discord'un $($d.Discord) alan adı her zaman işlenir. Üst alan adını eklemek bütün alt adlarını da kapsar."
 }
 
 # ---- islemler ----------------------------------------------------------------------------------

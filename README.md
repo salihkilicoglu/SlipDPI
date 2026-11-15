@@ -6,6 +6,10 @@ Trafik doğrudan hedefe gider; hız ve ping değişmez, IP adresin aynı kalır.
 
 Yalnızca listedeki alan adlarına dokunur. Listede olmayan hiçbir bağlantıyı değiştirmez.
 
+![dpi-lite kontrol penceresi](docs/panel.png)
+
+*Görüntüdeki siteler örnek veridir.*
+
 ## Nasıl çalışır
 
 Engel iki katmanda uygulanıyor, kurulum ikisini ayrı ayrı çözer:
@@ -15,7 +19,8 @@ Engel iki katmanda uygulanıyor, kurulum ikisini ayrı ayrı çözer:
    sahte bir açılış paketi gönderir. Sahte paketin ömrü (TTL) denetim kutusuna yetecek, gerçek sunucuya
    yetmeyecek kadardır.
 2. **DNS:** ISS engelli adlara sahte adres döndürür. Kurulum yalnızca listedeki adların sorgularını
-   şifreli DNS'e (DoH) yönlendirir; diğer bütün adlar modem DNS'inde kalır.
+   şifreli DNS'e (DoH) yönlendirir; diğer bütün adlar modem DNS'inde kalır. Tarayıcı için ayrıca
+   [Güvenli DNS](#chromeda-güvenli-dns-doh) açılır.
 
 Uygulamaya göre değil alan adına göre çalışır: tarayıcı, Discord ya da başka bir program fark etmez.
 
@@ -47,12 +52,11 @@ olduğu için bazı antivirüsler de uyarı verebilir. İndirdiğin dosyanın ö
 Kurulum şunları yapar ve her adımı ekrana, ayrıca `yerel\kur.log` dosyasına yazar:
 
 1. Motor dosyalarının özetlerini `bin\SHA256SUMS.txt` ile karşılaştırır.
-2. Hat için strateji seçilmemişse **strateji testini** çalıştırır (birkaç dakika): 13 ayarı sırayla
-   deneyip bu hatta çalışanı `yerel\strateji.json` dosyasına yazar.
-3. Dosyaları `C:\Program Files\dpi-lite` altına kopyalar ve açılışta otomatik başlayan `dpi-lite`
-   servisini oluşturur.
+2. Hat için strateji seçilmemişse **strateji testini** çalıştırır (2-3 dakika): 13 ayarı sırayla deneyip
+   bu hatta çalışanı `yerel\strateji.json` dosyasına yazar. Bu sırada engelli siteler kapalıdır.
+3. Açılışta otomatik başlayan `dpi-lite` servisini oluşturur.
 4. Listedeki adlar için DNS kuralını (NRPT) yazar.
-5. Chrome'da Güvenli DNS'i politika ile açar (aşağıya bak).
+5. Chrome kuruluysa [Güvenli DNS](#chromeda-güvenli-dns-doh)'i politika ile açar.
 6. Engelli ve engelsiz adreslere bağlanarak kendini doğrular; otomatik listenin öğrendiğini sınar.
 
 Aynı betik üstüne kurulum için de kullanılır; ayar ya da liste değiştiğinde yeniden çalıştırmak yeterlidir.
@@ -68,49 +72,85 @@ Aynı betik üstüne kurulum için de kullanılır; ayar ya da liste değiştiğ
 | Tarayıcı politikası | `HKLM\SOFTWARE\Policies\Google\Chrome`: `DnsOverHttpsMode`, `DnsOverHttpsTemplates` |
 
 Kaldırma bunların hepsini geri alır: kurulum programıyla kurulduysa "Ayarlar → Uygulamalar → dpi-lite →
-Kaldır", zip ya da depodan kurulduysa `kaldir.cmd`. Değiştirilen ayarların eski değerleri
-`C:\Program Files\dpi-lite\durum.json` dosyasında tutulur.
+Kaldır" (ya da kontrol penceresindeki "Kaldır"), zip ya da depodan kurulduysa `kaldir.cmd`. Değiştirilen
+ayarların eski değerleri `C:\Program Files\dpi-lite\durum.json` dosyasında tutulur.
 
 Kurulum programıyla kurulduğunda betikler ve listeler de `C:\Program Files\dpi-lite` altındadır.
 
 ## Kontrol penceresi
 
-![dpi-lite kontrol penceresi](docs/panel.png)
-
-Başlat menüsündeki "dpi-lite" kısayolu (zip ya da depodan kurulduysa `panel.cmd`) küçük bir pencere açar:
+Başlat menüsündeki "dpi-lite" kısayolu (zip ya da depodan kurulduysa `panel.cmd`) yukarıdaki pencereyi açar:
 
 - Servisin durumunu, seçili ayarı ve DNS'i gösterir; servisi durdurup başlatır.
 - Engelli site ekler, elle eklenenleri çıkarır.
 - Motorun kendi öğrendiği siteleri gösterir; yanlış gireni çıkarıp hariç tutar.
-- Hattı yeniden test eder ("Yeniden test et"), kurulumu onarır, kaydı açar, kaldırır.
+- Hattı yeniden test eder ("Yeniden test et"), kurulumu onarır, kurulum kaydını açar, kaldırır.
 
 Pencere yönetici olarak çalışmaz. Bir düğmeye basınca ilgili betiği yönetici olarak başlatır (Windows onay
 sorar) ve iş bitince durumu yeniler. Yalnızca açıkken çalışır; arka planda bir şey bırakmaz.
-Aşağıdaki betikler aynı işleri komut satırından yapar.
+[Komutlar](#komutlar) bölümündeki betikler aynı işleri komut satırından yapar.
+
+## Chrome'da Güvenli DNS (DoH)
+
+**Neden gerekli:** ISS engelli adlara sahte adres döndürdüğü için tarayıcının gerçek adresi başka yoldan
+öğrenmesi gerekir. Kurulumun Windows'a yazdığı DNS kuralı yalnızca o an listede olan adları kapsar. Motor
+yeni bir siteyi kendiliğinden öğrendiğinde o site kuralda henüz yoktur; tarayıcının kendi DNS'i şifreli
+değilse site yine açılmaz. Güvenli DNS (DNS over HTTPS) açıkken Chrome bütün adları şifreli sorar ve ISS
+araya giremez. Ayar yalnızca Chrome'u etkiler; diğer uygulamalar modem DNS'inde kalır.
+
+**Kurulum ne yapar:** Chrome kuruluysa bu ayarı Chrome'un kurumsal politika anahtarıyla kendisi açar
+(`DnsOverHttpsMode = automatic`, sağlayıcı Google). Elle bir şey yapman gerekmez. Yan etkileri:
+
+- Chrome menüsünde "Tarayıcınız kuruluşunuz tarafından yönetiliyor" yazısı görünür.
+- Ayarlardaki "Güvenli DNS kullan" seçeneği açık ve kilitli görünür.
+- Şifreli DNS'e ulaşılamazsa Chrome sistem DNS'ine düşer; internet kesilmez.
+
+Uygulandığını `chrome://policy` sayfasında `DnsOverHttpsMode` ve `DnsOverHttpsTemplates` satırlarından
+görebilirsin. Kaldırma politikayı siler ve Chrome eski haline döner.
+
+**Politikayı istemiyorsan:** `kur.ps1` başındaki `$TarayiciDns = @('chrome')` satırını `@()` yapıp
+`kur.ps1` çalıştır; önceki kurulumun koyduğu politika kaldırılır. Sonra ayarı elle aç:
+
+Chrome → Ayarlar → Gizlilik ve güvenlik → Güvenlik → Gelişmiş → **Güvenli DNS kullan** → "DNS sağlayıcı
+seç" → **Google (Public DNS)**
+
+![Chrome'da Güvenli DNS ayarı](docs/chrome-guvenli-dns.png)
+
+**Neden Google:** Cloudflare DNS, istemcinin konumunu iletmediği için indirme ve içerik sunucularını uzağa
+yönlendirebiliyor. Tek bir Türk Telekom hattında yapılan ölçümde aynı adlar Cloudflare DNS ile 41–82 ms,
+Google DNS ve modem DNS'i ile 6–13 ms uzaktaki sunuculara gitti. Aynı nedenle Windows'un genel DNS ayarını
+değiştirmek gerekmez ve önerilmez.
+
+**Diğer tarayıcılar:** Edge ve Brave aynı politikayı kullanır; `$TarayiciDns = @('chrome', 'edge', 'brave')`
+yazıp `kur.ps1` çalıştırmak yeterlidir. Firefox için politika yazılmaz; Ayarlar → Gizlilik ve Güvenlik →
+"HTTPS üzerinden DNS" bölümünden elle açılır.
+
+**Not:** DNS'i sistem genelinde süzen bir araç kullanıyorsan (ör. bir reklam engelleyicinin "DNS koruması"),
+tarayıcının şifreli DNS sorguları o süzgeçten geçmez.
 
 ## Listeler
 
 | Dosya | Kim doldurur | İş |
 |---|---|---|
 | `lists\discord.txt` | elle | Discord alan adları, her zaman işlenir |
-| `lists\siteler.txt` | elle (`site-ekle.ps1`) | Her zaman işlenecek diğer siteler |
+| `lists\siteler.txt` | kontrol penceresi ya da `site-ekle.ps1` | Her zaman işlenecek diğer siteler |
 | `C:\Program Files\dpi-lite\otomatik.txt` | motor | Motorun kendi öğrendiği siteler |
-| `lists\haric.txt` | elle (`otomatik-liste.ps1 -Sil`) | Asla işlenmeyecek ve otomatik eklenmeyecek siteler |
+| `lists\haric.txt` | kontrol penceresi ya da `otomatik-liste.ps1 -Sil` | Asla işlenmeyecek ve otomatik eklenmeyecek siteler |
 
 **Otomatik liste:** listede olmayan bir site 60 saniye içinde üç kez açılışta kesilirse motor onu kendi
 listesine ekler. Pratikte yeni bir engelli sitede sayfayı iki üç kez yenilemek gerekir, sonrası kalıcıdır.
 
-- Motor tam alan adını ekler; çok alt adı olan bir sitede her alt ad ayrı öğrenilir. Üst alan adını
-  `site-ekle.ps1` ile bir kez eklemek hepsini kapsar.
+- Motor tam alan adını ekler; çok alt adı olan bir sitede her alt ad ayrı öğrenilir. Üst alan adını elle
+  bir kez eklemek hepsini kapsar.
 - Öğrenilen site Güvenli DNS'i açık tarayıcıda hemen açılır. Diğer uygulamalar için DNS kuralı bir
-  sonraki `kur.ps1` çalıştırmasında güncellenir.
+  sonraki kurulum çalıştırmasında ("Onar" ya da `kur.ps1`) güncellenir.
 - Hiç cevap vermeyen ya da hata döndüren sunucular listeye girmez. Bağlantıyı tam engel gibi kesen
-  arızalı bir sunucu girebilir; `otomatik-liste.ps1 -Sil` ile çıkarılır.
+  arızalı bir sunucu girebilir; kontrol penceresinden çıkarılıp hariç tutulur.
 - Otomatik liste ve motorun kaydı (`otomatik-kayit.log`) düz metindir; açılan engelli sitelerin adlarını tutar.
 
 ## Komutlar
 
-Yönetici izni gerekenler kendisi UAC penceresi açar.
+Kontrol penceresinin yaptığı her şey betiklerle de yapılır. Yönetici izni gerekenler kendisi UAC penceresi açar.
 
 | Betik | İş |
 |---|---|
@@ -134,49 +174,45 @@ Otomatik liste düz bir metin dosyasıdır, Not Defteri'yle de açılır:
 
 `kur.ps1` dosyasının başındaki `AYAR` bölümünde:
 
-- `$DnsSunucu`: listedeki adlar için DNS. Varsayılan Google, çünkü istemci konumunu ilettiği için yakın
-  sunucu döndürür. Bu ölçüm tek bir Türk Telekom hattında yapıldı: Cloudflare DNS indirme ve içerik
-  sunucularını 41–82 ms, Google ve modem DNS'i 6–13 ms uzağa yönlendirdi. Aynı nedenle Windows'un genel
-  DNS ayarını değiştirmek önerilmez.
+- `$DnsSunucu`: listedeki adlar için DNS. Varsayılan Google (nedeni [yukarıda](#chromeda-güvenli-dns-doh)).
 - `$TarayiciDns`: Güvenli DNS politikası konacak tarayıcılar (`chrome`, `edge`, `brave`). Boş bırakılırsa
   (`@()`) tarayıcıya dokunulmaz.
 - `$OgrenmeTesti`: kurulum sonunda otomatik listeyi sınamak için kullanılan engelli alan adı.
 
-Strateji `yerel\strateji.json` dosyasındadır ve makineye özeldir. Silip `kur.ps1` çalıştırmak ya da
-`strateji-test.ps1` çalıştırmak yeniden seçtirir.
-
-### Tarayıcı Güvenli DNS politikası
-
-Otomatik listenin tarayıcıda işe yaraması için tarayıcının DNS'i şifreli olmalı. Kurulum bunu Chrome'un
-kurumsal politika anahtarıyla yapar. Yan etkileri:
-
-- Chrome menüsünde "Tarayıcınız kuruluşunuz tarafından yönetiliyor" yazısı görünür.
-- Ayarlardaki "Güvenli DNS kullan" seçeneği kilitlenir.
-- Mod `automatic`: şifreli DNS'e ulaşılamazsa Chrome sistem DNS'ine düşer, internet kesilmez.
-
-İstemiyorsan `$TarayiciDns = @()` yapıp `kur.ps1` çalıştır; önceki kurulumun koyduğu politika kaldırılır.
-Firefox için politika yazılmaz; Ayarlar → Gizlilik → "HTTPS üzerinden DNS" elle açılabilir.
+Strateji `yerel\strateji.json` dosyasındadır ve makineye özeldir. Kontrol penceresindeki "Yeniden test et"
+(ya da `kur.ps1 -YenidenTest`) hattı baştan test edip yeniden seçer. Seçim kuralı: sahte paketin geçtiği en
+düşük ömür (TTL) denetim kutusunun uzaklığıdır; bir fazlası da geçiyorsa o kullanılır.
 
 ## Sorun giderme
 
-- **Yeni bir engelli site açılmıyor:** sayfayı iki üç kez yenile. Olmuyorsa `site-ekle.ps1` ile elle ekle.
-- **Eskiden açılan bir site bozuldu:** `otomatik-liste.ps1` ile listeye yanlışlıkla girip girmediğine bak;
-  girdiyse `otomatik-liste.ps1 -Sil siteadi.com`.
-- **Engelli siteler yeniden kapandı:** `ac-kapat.ps1 -Durum` ile servise bak, sonra `strateji-test.ps1`
-  ve `kur.ps1` çalıştır. ISS denetim kutusunu değiştirmiş olabilir.
+- **Yeni bir engelli site açılmıyor:** sayfayı iki üç kez yenile. Olmuyorsa kontrol penceresinden elle ekle.
+  Chrome dışında bir tarayıcı kullanıyorsan [Güvenli DNS](#chromeda-güvenli-dns-doh)'in açık olduğuna bak.
+- **Eskiden açılan bir site bozuldu:** kontrol penceresindeki "Otomatik eklenenler" sekmesine yanlışlıkla
+  girip girmediğine bak; girdiyse "Çıkar ve hariç tut".
+- **Engelli siteler yeniden kapandı:** pencerede servisin çalıştığına bak, sonra "Yeniden test et". ISS
+  denetim kutusunu değiştirmiş olabilir.
+- **Kurulum doğrulamayı geçemedi:** pencerede "Kayıt" kurulum kaydını açar; "Onar" kurulumu yeniden dener.
+  Servis başlamıyorsa antivirüs WinDivert sürücüsünü engelliyor olabilir.
 - **Discord "Starting..." ekranında kalıyor:** sistem tepsisinden Discord'dan tamamen çıkıp yeniden aç.
-- **Bir şey bozuldu ve nedenini bilmiyorsun:** `ac-kapat.ps1` ile kapat. Sorun sürüyorsa bu kurulumdan
+- **Bir şey bozuldu ve nedenini bilmiyorsun:** pencereden servisi durdur. Sorun sürüyorsa bu kurulumdan
   kaynaklanmıyordur.
 
 ## Ne kadar test edildi
 
-Kasım 2026'da tek bir makinede, tek bir Türk Telekom hattında denendi: Chrome, Discord uygulaması
-(yazı ve ses), otomatik liste, üstüne kurulum. O hatta motor açık ve kapalıyken ping, TLS süresi ve
-yükleme hızı aynıydı; kısa indirme ölçümleri dalgalı olduğu için indirmede küçük bir etki olmadığı
-kanıtlanamadı.
+Kasım 2026'da tek bir makinede, tek bir Türk Telekom hattında denendi:
 
-Başka ISS'lerde (Superonline, Vodafone, TurkNet, Kablonet, mobil hatlar) denenmedi. Strateji testi her
-hatta kendi seçimini yapacak şekilde yazıldı, ama orada çalıştığı doğrulanmadı.
+- Chrome, Discord uygulaması (yazı ve ses), HTTP/3, otomatik liste, depodan kurulum ve üstüne kurulum.
+- Motor açık ve kapalıyken ping, TLS süresi ve yükleme hızı aynıydı. 500 MB'lık sürekli indirme motor
+  açıkken 607–613 Mbps ölçüldü; motor kapalıyken görülen tavan 610–615 Mbps'ti. İkisi aynı dosyayla
+  yapılmış birebir karşılaştırma değildir.
+
+Henüz denenmeyenler:
+
+- Kurulum programının (exe) kendisi ve kontrol penceresinin düğmeleri gerçek bir kurulumda çalıştırılmadı.
+  Pencerenin görünümü ve durumu doğru okuduğu doğrulandı.
+- Başka ISS'ler (Superonline, Vodafone, TurkNet, Kablonet, mobil hatlar). Strateji testi her hatta kendi
+  seçimini yapacak şekilde yazıldı, ama orada çalıştığı doğrulanmadı.
+- Edge ve Brave için Güvenli DNS politikası.
 
 ## Dağıtım dosyalarını üretmek
 

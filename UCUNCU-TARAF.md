@@ -25,6 +25,13 @@ Git blob özetleri (GitHub'daki dosyayla karşılaştırmak için, `git hash-obj
     WinDivert64.sys  218ccaf423ef0a67696226f9ef3a09149e4441d0
     cygwin1.dll      1bb2e05c6d5458ad7987859a17172b635e87b9c5
 
+## Kurulum programı
+
+`dpi-lite-kurulum-<sürüm>.exe`, [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7.3 ile derlenir ve onun
+kurulum çalıştırıcısını içerir. Inno Setup kendi lisansıyla dağıtılır
+(<https://jrsoftware.org/files/is/license.txt>). Kurulum tanımı `kurulum\dpi-lite.iss` dosyasındadır;
+derleme `paketle.ps1` ile yapılır. Kurulum programı imzasızdır.
+
 ## Bilinmesi gerekenler
 
 - `WinDivert64.sys` bir çekirdek sürücüsüdür. İmza sahibi olarak "成都密思听科技有限公司" görünür (Windows imzayı

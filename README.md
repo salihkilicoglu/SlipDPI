@@ -155,6 +155,9 @@ listesine ekler. Pratikte yeni bir engelli sitede sayfayı iki üç kez yenileme
 - Hiç cevap vermeyen ya da hata döndüren sunucular listeye girmez. Bağlantıyı tam engel gibi kesen
   arızalı bir sunucu girebilir; kontrol penceresinden çıkarılıp hariç tutulur.
 - Otomatik liste ve motorun kaydı (`otomatik-kayit.log`) düz metindir; açılan engelli sitelerin adlarını tutar.
+- Kurulumun sonundaki öğrenme testi `wattpad.com`'u kullanır. Site elle ya da hariç listesinde değilse
+  test sırasında otomatik listeye eklenir; istemiyorsan hariç listesine al.
+- "Onar" ve "Yeniden test et" listelere dokunmaz. Listeleri silen tek şey kaldırmadır.
 
 ## Komutlar
 
@@ -201,6 +204,10 @@ düşük ömür (TTL) denetim kutusunun uzaklığıdır; bir fazlası da geçiyo
   denetim kutusunu değiştirmiş olabilir.
 - **Kurulum doğrulamayı geçemedi:** pencerede "Kurulum kaydı" kaydı açar; "Onar" kurulumu yeniden dener.
   Servis başlamıyorsa antivirüs WinDivert sürücüsünü engelliyor olabilir.
+- **Kurulum penceresi bir satırda bekliyor:** pencerenin içine tıklandıysa Windows seçim moduna geçer
+  (başlıkta "Select" ya da "Seç" yazar) ve betik bekler. Pencereye tıklayıp Enter'a bas.
+- **Elle listeden çıkardığın site hâlâ açılıyor:** site engelliyse motor onu kendisi öğrenir. Hiç
+  işlenmesin istiyorsan "Otomatik eklenenler" sekmesinde "Çıkar ve hariç tut".
 - **Discord "Starting..." ekranında kalıyor:** sistem tepsisinden Discord'dan tamamen çıkıp yeniden aç.
 - **Bir şey bozuldu ve nedenini bilmiyorsun:** pencereden servisi durdur. Sorun sürüyorsa bu kurulumdan
   kaynaklanmıyordur.
@@ -210,17 +217,23 @@ düşük ömür (TTL) denetim kutusunun uzaklığıdır; bir fazlası da geçiyo
 Kasım 2026'da tek bir makinede, tek bir Türk Telekom hattında denendi:
 
 - Chrome, Discord uygulaması (yazı ve ses), HTTP/3, otomatik liste, depodan kurulum ve üstüne kurulum.
-- Kurulum programı sessiz modda (`/SILENT`) kuruldu ve kaldırıldı: kurulum kendi doğrulamasını geçti,
-  kaldırma servis, sürücü, dosyalar, DNS kuralı, şifreli DNS ayarı, Chrome politikası ve kısayolların
-  hepsini geri aldı.
+- Kurulum programı: ilk kurulum, kısayol seçimi, üstüne kurulum ve kaldırma. Kurulum her seferinde kendi
+  doğrulamasını geçti; kaldırma servis, sürücü, dosyalar, DNS kuralı, şifreli DNS ayarı, Chrome
+  politikası ve kısayolların hepsini geri aldı.
+- Kontrol penceresi: Durdur, Başlat, Ekle, Çıkar, "Çıkar ve hariç tut" ve "Geri al" düğmeleri gerçek
+  kullanımda denendi.
+- Chrome'da Güvenli DNS politikasının uygulandığı Chrome ayarlarından görüldü (açık ve kilitli).
 - Motor açık ve kapalıyken ping, TLS süresi ve yükleme hızı aynıydı. 500 MB'lık sürekli indirme motor
   açıkken 607–613 Mbps ölçüldü; motor kapalıyken görülen tavan 610–615 Mbps'ti. İkisi aynı dosyayla
   yapılmış birebir karşılaştırma değildir.
 
 Henüz denenmeyenler:
 
-- Kurulum sihirbazının sayfaları (yalnızca sessiz mod denendi) ve kontrol penceresinin düğmeleri.
-  Pencerenin görünümü ve durumu doğru okuduğu doğrulandı.
+- Kontrol penceresinde "Yeniden test et", "Onar", "Kurulum kaydı" ve "Kaldır" düğmeleri (çağırdıkları
+  betikler denendi, düğmelerin kendisi denenmedi).
+- Hariç listesindeki bir sitenin motor tarafından yeniden öğrenilmediği.
+- Son iki düzeltme gerçek bir kurulumda: pencereye tıklanınca donmanın engellenmesi ve kurulum
+  penceresindeki sadeleştirilmiş çıktı.
 - Başka ISS'ler (Superonline, Vodafone, TurkNet, Kablonet, mobil hatlar). Strateji testi her hatta kendi
   seçimini yapacak şekilde yazıldı, ama orada çalıştığı doğrulanmadı.
 - Edge ve Brave için Güvenli DNS politikası.

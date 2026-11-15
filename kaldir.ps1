@@ -26,8 +26,12 @@ if (Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue) {
 Get-Process winws -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
 if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDivert') {
+    # Surucu durdurulunca kaydi cogu zaman kendiliginden silinir; "delete" o yuzden hata verebilir.
     sc.exe stop windivert   | Out-Null
-    sc.exe delete windivert | Out-Host
+    sc.exe delete windivert | Out-Null
+    Start-Sleep -Milliseconds 500
+    if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDivert') { Write-Host 'WinDivert surucusu durduruldu; kaydi yeniden baslatinca silinecek.' -ForegroundColor Yellow }
+    else { Write-Host 'WinDivert surucusu kaldirildi.' }
 } else { Write-Host 'WinDivert surucusu kayitli degil.' }
 
 Say '2/5  DNS kurali'

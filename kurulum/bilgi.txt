@@ -26,5 +26,6 @@ BİLMENİZ GEREKENLER
   - Windows 11, 64 bit önerilir. Yönetici hakkı gerekir.
   - Çalışan başka bir DPI aracı (GoodbyeDPI, zapret, ByeDPI) varsa önce kapatın.
   - Bazı antivirüsler WinDivert sürücüsünü engeller.
-  - Kurulumdan sonra Başlat menüsündeki "dpi-lite" kontrol penceresinden durumu görebilir, site ekleyip çıkarabilir, servisi durdurup başlatabilirsiniz.
-  - Ayrıntılar Başlat menüsündeki "Kullanım kılavuzu"ndadır.
+  - Sonraki sayfada Başlat menüsü ve masaüstü kısayolu isteyip istemediğiniz sorulur.
+  - Kurulumdan sonra "dpi-lite" kontrol penceresinden durumu görebilir, site ekleyip çıkarabilir, servisi durdurup başlatabilirsiniz. Kısayol seçmediyseniz pencere C:\Program Files\dpi-lite\panel.cmd ile açılır.
+  - Ayrıntılar kurulum klasöründeki README.md dosyasındadır (Başlat menüsünde "Kullanım kılavuzu").

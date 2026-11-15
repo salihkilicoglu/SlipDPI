@@ -65,18 +65,26 @@ Source: "{#Kaynak}\README.md";          DestDir: "{app}";          Flags: ignore
 Source: "{#Kaynak}\UCUNCU-TARAF.md";    DestDir: "{app}";          Flags: ignoreversion
 Source: "{#Kaynak}\LICENSE";            DestDir: "{app}";          Flags: ignoreversion
 
+; Kurulum sihirbazi "Ek gorevler" sayfasinda iki kisayolu ayri ayri sorar.
+; Sessiz kurulumda varsayilanlar gecerlidir; degistirmek icin: /TASKS="baslatmenusu,masaustu"
 [Tasks]
-Name: "masaustu"; Description: "{cm:CreateDesktopIcon}"; Flags: unchecked
+Name: "baslatmenusu"; Description: "Başlat menüsüne kısayol ekle"; GroupDescription: "Kısayollar:"
+Name: "masaustu";     Description: "Masaüstüne kısayol ekle";      GroupDescription: "Kısayollar:"; Flags: unchecked
 
 [Icons]
-; Kontrol penceresi: durum, ac/kapat, site ekle/cikar, yeniden test, onar ve kaldir hepsi buradan.
-Name: "{group}\dpi-lite";             Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized
+; Kontrol penceresi: durum, durdur/baslat, site ekle/cikar, yeniden test, onar ve kaldir hepsi buradan.
+Name: "{group}\dpi-lite";             Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized; Tasks: baslatmenusu
+Name: "{group}\Kullanım kılavuzu";    Filename: "{win}\notepad.exe"; Parameters: """{app}\README.md"""; Tasks: baslatmenusu
+Name: "{group}\dpi-lite'ı kaldır";    Filename: "{uninstallexe}"; Tasks: baslatmenusu
 Name: "{autodesktop}\dpi-lite";       Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\dpi-lite.ico"; Flags: runminimized; Tasks: masaustu
-Name: "{group}\Kullanım kılavuzu";    Filename: "{win}\notepad.exe"; Parameters: """{app}\README.md"""
-Name: "{group}\dpi-lite'ı kaldır";    Filename: "{uninstallexe}"
 
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; Description: "dpi-lite kontrol penceresini aç"; Flags: postinstall nowait skipifsilent runasoriginaluser runminimized
+
+; Ustune kurulumda onceki kisayollari sil; ardindan yalnizca bu kurulumda secilenler yeniden olusturulur.
+[InstallDelete]
+Type: filesandordirs; Name: "{group}"
+Type: files;          Name: "{autodesktop}\dpi-lite.lnk"
 
 [UninstallRun]
 Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\kaldir.ps1"" -Sessiz"; Flags: waituntilterminated; RunOnceId: "dpilite-kaldir"

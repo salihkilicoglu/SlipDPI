@@ -37,8 +37,10 @@ Uygulamaya göre değil alan adına göre çalışır: tarayıcı, Discord ya da
 Üç yol var; üçü de aynı kurulum betiğini (`kur.ps1`) çalıştırır.
 
 1. **Kurulum programı:** Releases sayfasından `dpi-lite-kurulum-<sürüm>.exe` dosyasını indirip çalıştır.
-   Dosyaları `C:\Program Files\dpi-lite` altına kurar, Başlat menüsüne "dpi-lite" kontrol penceresini
-   ekler ve "Uygulamalar" listesine kaldırma girdisi koyar.
+   Dosyaları `C:\Program Files\dpi-lite` altına kurar, Başlat menüsü ve masaüstü kısayolu isteyip
+   istemediğini sorar ve "Uygulamalar" listesine kaldırma girdisi koyar. Soru sormadan kurmak için
+   `/SILENT` (yalnızca Başlat menüsü kısayolu), ikisini de istemek için
+   `/SILENT /TASKS="baslatmenusu,masaustu"`.
 2. **Zip:** `dpi-lite-<sürüm>.zip` dosyasını indir, bir klasöre aç, `kur.cmd` dosyasına çift tıkla.
 3. **Depodan:** depoyu klonla, `kur.cmd` dosyasına çift tıkla ya da komut satırından:
 
@@ -79,7 +81,8 @@ Kurulum programıyla kurulduğunda betikler ve listeler de `C:\Program Files\dpi
 
 ## Kontrol penceresi
 
-Başlat menüsündeki "dpi-lite" kısayolu (zip ya da depodan kurulduysa `panel.cmd`) yukarıdaki pencereyi açar:
+Başlat menüsündeki ya da masaüstündeki "dpi-lite" kısayolu (kısayol seçmediysen ya da zip/depodan
+kurduysan `panel.cmd`) yukarıdaki pencereyi açar:
 
 - Servisin durumunu, seçili ayarı ve DNS'i gösterir; servisi durdurup başlatır.
 - Engelli site ekler, elle eklenenleri çıkarır.
@@ -202,13 +205,16 @@ düşük ömür (TTL) denetim kutusunun uzaklığıdır; bir fazlası da geçiyo
 Kasım 2026'da tek bir makinede, tek bir Türk Telekom hattında denendi:
 
 - Chrome, Discord uygulaması (yazı ve ses), HTTP/3, otomatik liste, depodan kurulum ve üstüne kurulum.
+- Kurulum programı sessiz modda (`/SILENT`) kuruldu ve kaldırıldı: kurulum kendi doğrulamasını geçti,
+  kaldırma servis, sürücü, dosyalar, DNS kuralı, şifreli DNS ayarı, Chrome politikası ve kısayolların
+  hepsini geri aldı.
 - Motor açık ve kapalıyken ping, TLS süresi ve yükleme hızı aynıydı. 500 MB'lık sürekli indirme motor
   açıkken 607–613 Mbps ölçüldü; motor kapalıyken görülen tavan 610–615 Mbps'ti. İkisi aynı dosyayla
   yapılmış birebir karşılaştırma değildir.
 
 Henüz denenmeyenler:
 
-- Kurulum programının (exe) kendisi ve kontrol penceresinin düğmeleri gerçek bir kurulumda çalıştırılmadı.
+- Kurulum sihirbazının sayfaları (yalnızca sessiz mod denendi) ve kontrol penceresinin düğmeleri.
   Pencerenin görünümü ve durumu doğru okuduğu doğrulandı.
 - Başka ISS'ler (Superonline, Vodafone, TurkNet, Kablonet, mobil hatlar). Strateji testi her hatta kendi
   seçimini yapacak şekilde yazıldı, ama orada çalıştığı doğrulanmadı.

@@ -1,11 +1,11 @@
-﻿dpi-lite, Türkiye'deki site adı tabanlı erişim engellerini VPN ya da tünel kullanmadan aşan küçük bir kurulumdur. Yalnızca listedeki alan adlarına giden bağlantıların açılış paketine dokunur.
+﻿SlipDPI, Türkiye'deki site adı tabanlı erişim engellerini VPN ya da tünel kullanmadan aşan küçük bir kurulumdur. Yalnızca listedeki alan adlarına giden bağlantıların açılış paketine dokunur.
 
 KURULUM SIRASINDA NE OLUR
 
 Dosyalar kopyalandıktan sonra bir komut penceresi açılır ve şunları yapar:
 
   1. Hattınız test edilir ve çalışan ayar seçilir (2-3 dakika).
-  2. Açılışta otomatik başlayan "dpi-lite" servisi kurulur.
+  2. Açılışta otomatik başlayan "SlipDPI" servisi kurulur.
   3. Yalnızca listedeki alan adları için DNS sorguları şifreli DNS'e yönlendirilir.
   4. Chrome kuruluysa "Güvenli DNS" politika ile açılır.
   5. Engelli ve engelsiz adreslere bağlanılarak sonuç doğrulanır.
@@ -14,12 +14,12 @@ Pencereyi kapatmayın; iş bitince kendiliğinden kapanır.
 
 SİSTEMDE DEĞİŞENLER
 
-  - "dpi-lite" servisi ve WinDivert sürücüsü
-  - C:\Program Files\dpi-lite klasörü
+  - "SlipDPI" servisi ve WinDivert sürücüsü
+  - C:\Program Files\SlipDPI klasörü
   - Listedeki alan adları için bir DNS kuralı (diğer adlar modem DNS'inde kalır)
   - Chrome için iki politika değeri (Chrome "kuruluşunuz tarafından yönetiliyor" yazar)
 
-Hepsi "Ayarlar > Uygulamalar > dpi-lite > Kaldır" ile geri alınır.
+Hepsi "Ayarlar > Uygulamalar > SlipDPI > Kaldır" ile geri alınır.
 
 BİLMENİZ GEREKENLER
 
@@ -27,5 +27,5 @@ BİLMENİZ GEREKENLER
   - Çalışan başka bir DPI aracı (GoodbyeDPI, zapret, ByeDPI) varsa önce kapatın.
   - Bazı antivirüsler WinDivert sürücüsünü engeller.
   - Sonraki sayfada Başlat menüsü ve masaüstü kısayolu isteyip istemediğiniz sorulur.
-  - Kurulumdan sonra "dpi-lite" kontrol penceresinden durumu görebilir, site ekleyip çıkarabilir, servisi durdurup başlatabilirsiniz. Kısayol seçmediyseniz pencere C:\Program Files\dpi-lite\panel.cmd ile açılır.
+  - Kurulumdan sonra "SlipDPI" kontrol penceresinden durumu görebilir, site ekleyip çıkarabilir, servisi durdurup başlatabilirsiniz. Kısayol seçmediyseniz pencere C:\Program Files\SlipDPI\panel.cmd ile açılır.
   - Kullanım kılavuzu kontrol penceresindeki "Kılavuz" düğmesiyle açılır.

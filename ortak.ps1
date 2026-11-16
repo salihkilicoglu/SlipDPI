@@ -1,9 +1,9 @@
-# dpi-lite : betiklerin ortak fonksiyonlari.
+# SlipDPI : betiklerin ortak fonksiyonlari.
 # Tek basina calistirilmaz; diger betikler bu dosyayi dot-source eder:  . "$PSScriptRoot\ortak.ps1"
 
-$ServisAdi = 'dpi-lite'
-$Etiket    = 'dpi-lite'
-$Hedef     = Join-Path $env:ProgramFiles 'dpi-lite'
+$ServisAdi = 'SlipDPI'
+$Etiket    = 'SlipDPI'
+$Hedef     = Join-Path $env:ProgramFiles 'SlipDPI'
 $AutoListe = Join-Path $Hedef 'otomatik.txt'
 $AutoKayit = Join-Path $Hedef 'otomatik-kayit.log'
 $DurumYolu = Join-Path $Hedef 'durum.json'
@@ -28,7 +28,7 @@ function Yukselt($betik, $ek) {
 
 function Say($t) { Write-Host "`n== $t ==" -ForegroundColor Cyan }
 
-# Paket kurulum programiyla dogrudan C:\Program Files\dpi-lite altina kurulduysa $true.
+# Paket kurulum programiyla dogrudan C:\Program Files\SlipDPI altina kurulduysa $true.
 # Depodan calistirilirken paket baska bir klasordedir ve motor dosyalari oraya kopyalanir.
 function Kurulu-Duzen($root) {
     [string]::Equals([IO.Path]::GetFullPath($root).TrimEnd('\'), [IO.Path]::GetFullPath($Hedef).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)

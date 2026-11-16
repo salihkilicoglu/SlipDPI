@@ -1,9 +1,9 @@
-# dpi-lite : kurulum  (tekrar calistirilabilir; ilk kurulumda da ustune kurulumda da ayni betik)
+# SlipDPI : kurulum  (tekrar calistirilabilir; ilk kurulumda da ustune kurulumda da ayni betik)
 #
 # Yaptiklari:
 #   1) Bu hat icin strateji secilmemisse strateji testini calistirir (yerel\strateji.json).
-#   2) bin, filters, lists klasorlerini C:\Program Files\dpi-lite altina esitler.
-#   3) "dpi-lite" adinda otomatik baslayan bir Windows servisi olusturur (zapret winws):
+#   2) bin, filters, lists klasorlerini C:\Program Files\SlipDPI altina esitler.
+#   3) "SlipDPI" adinda otomatik baslayan bir Windows servisi olusturur (zapret winws):
 #        lists\discord.txt + lists\siteler.txt : her zaman islenen alan adlari
 #        otomatik.txt                          : motorun kendi doldurdugu liste
 #        lists\haric.txt                       : asla islenmeyecek / otomatik eklenmeyecek alan adlari
@@ -53,7 +53,7 @@ function Fail($msg) {
     Write-Host "`nDURDU: $msg" -ForegroundColor Red
     Stop-Transcript | Out-Null
     if ($Kurulumdan) { Read-Host "`nKapatmak icin Enter" | Out-Null; exit 1 }
-    throw "dpi-lite kurulumu durdu: $msg"
+    throw "SlipDPI kurulumu durdu: $msg"
 }
 
 function Probe($url, $name, $ip) {
@@ -130,7 +130,7 @@ Write-Host 'Tamam: dosyalar yerinde ve ozetleri dogru.'
 Say '1/7  Onceki kurulum'
 $old = Durum-Oku
 if (Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue) {
-    Write-Host 'Onceki dpi-lite servisi durdurulup kaldiriliyor...'
+    Write-Host 'Onceki SlipDPI servisi durdurulup kaldiriliyor...'
     Stop-Service -Name $ServisAdi -Force -ErrorAction SilentlyContinue
     sc.exe delete $ServisAdi | Out-Null
     for ($i = 0; $i -lt 20; $i++) { if (-not (Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 300 }
@@ -210,8 +210,8 @@ if ($dry.ExitCode -ne 0) {
 Write-Host 'Ayar motorun kendi denetiminden gecti.' -ForegroundColor Green
 
 try {
-    New-Service -Name $ServisAdi -BinaryPathName ((Q $exe) + ' ' + $engineArgs) -DisplayName 'dpi-lite (zapret winws)' `
-        -Description 'Yalnizca listedeki engelli alan adlarina giden baglantilarin acilis paketini duzenler. Kaldirmak icin: dpi-lite\kaldir.ps1' `
+    New-Service -Name $ServisAdi -BinaryPathName ((Q $exe) + ' ' + $engineArgs) -DisplayName 'SlipDPI (zapret winws)' `
+        -Description 'Yalnizca listedeki engelli alan adlarina giden baglantilarin acilis paketini duzenler. Kaldirmak icin: SlipDPI\kaldir.ps1' `
         -StartupType Automatic -ErrorAction Stop | Out-Null
 } catch { Fail "Servis olusturulamadi: $($_.Exception.Message)" }
 sc.exe failure $ServisAdi reset= 86400 actions= restart/5000/restart/5000/restart/60000 | Out-Null

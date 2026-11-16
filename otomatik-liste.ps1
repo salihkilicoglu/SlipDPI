@@ -1,4 +1,4 @@
-# dpi-lite : otomatik listeyi gosterme / listeden site cikarma
+# SlipDPI : otomatik listeyi gosterme / listeden site cikarma
 #
 # Kullanim:
 #   otomatik-liste.ps1                      -> motorun kendi ekledigi siteleri gosterir (yonetici gerekmez)
@@ -13,7 +13,7 @@ param([string]$Sil, [string]$HaricSil, [switch]$Panel)
 $haric = Join-Path $PSScriptRoot 'lists\haric.txt'
 
 if (-not $Sil -and -not $HaricSil) {
-    if (-not (Test-Path $AutoListe)) { Write-Host 'Otomatik liste yok (dpi-lite kurulu degil).'; Kapanmadan-Bekle; return }
+    if (-not (Test-Path $AutoListe)) { Write-Host 'Otomatik liste yok (SlipDPI kurulu degil).'; Kapanmadan-Bekle; return }
     $l = @(Satirlar $AutoListe)
     Write-Host ("Otomatik listede {0} alan adi var:" -f $l.Count) -ForegroundColor Cyan
     $l | ForEach-Object { Write-Host "  $_" }

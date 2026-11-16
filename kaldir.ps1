@@ -1,11 +1,11 @@
-# dpi-lite : tamamen kaldirma
+# SlipDPI : tamamen kaldirma
 #
-# Geri aldiklari: dpi-lite servisi, WinDivert surucusu, DNS (NRPT) kurali, kurulum sirasinda
+# Geri aldiklari: SlipDPI servisi, WinDivert surucusu, DNS (NRPT) kurali, kurulum sirasinda
 # degistirildiyse DoH sunucu ayari, tarayici Guvenli DNS politikasi, otomatik liste ve durum dosyalari.
 #
-# Depodan kurulduysa C:\Program Files\dpi-lite klasorunu de siler; depo klasorune dokunmaz.
+# Depodan kurulduysa C:\Program Files\SlipDPI klasorunu de siler; depo klasorune dokunmaz.
 # Kurulum programiyla (setup.exe) kurulduysa program dosyalarini kaldirma programi siler; bu betigi
-# o cagirir (-Sessiz). Elle calistirildiysa program dosyalari icin Uygulamalar > dpi-lite > Kaldir kullanilir.
+# o cagirir (-Sessiz). Elle calistirildiysa program dosyalari icin Uygulamalar > SlipDPI > Kaldir kullanilir.
 param([switch]$Sessiz)
 
 . (Join-Path $PSScriptRoot 'ortak.ps1')
@@ -15,7 +15,7 @@ if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
 HizliDuzenleme-Kapat      # pencereye tiklaninca kaldirma donmasin
 $kuruluDuzen = Kurulu-Duzen $PSScriptRoot
 # Kurulu duzende yerel\ klasoru de silinecegi icin kayit gecici klasore yazilir.
-if ($kuruluDuzen) { $logYol = Join-Path $env:TEMP 'dpi-lite-kaldir.log' } else { $logYol = Join-Path (Yerel-Klasor $PSScriptRoot) 'kaldir.log' }
+if ($kuruluDuzen) { $logYol = Join-Path $env:TEMP 'SlipDPI-kaldir.log' } else { $logYol = Join-Path (Yerel-Klasor $PSScriptRoot) 'kaldir.log' }
 Start-Transcript -Path $logYol -Force | Out-Null
 $st = Durum-Oku
 
@@ -79,6 +79,6 @@ Write-Host ("Servis: "     + $(if (Get-Service -Name $ServisAdi -ErrorAction Sil
 Write-Host ("DNS kurali: " + @(Get-DnsClientNrptRule -ErrorAction SilentlyContinue | Where-Object { $_.Comment -eq $Etiket -or $_.DisplayName -eq $Etiket -or ($names -contains $_.Name) }).Count)
 Write-Host ("Internet: "   + $(if (Test-Connection 1.1.1.1 -Count 2 -Quiet) { 'calisiyor' } else { 'YOK' }))
 Write-Host 'Kaldirma tamam. Engelli siteler tekrar kapali olacak.' -ForegroundColor Green
-if ($kuruluDuzen -and -not $Sessiz) { Write-Host 'Program dosyalarini da silmek icin: Ayarlar > Uygulamalar > dpi-lite > Kaldir.' -ForegroundColor Yellow }
+if ($kuruluDuzen -and -not $Sessiz) { Write-Host 'Program dosyalarini da silmek icin: Ayarlar > Uygulamalar > SlipDPI > Kaldir.' -ForegroundColor Yellow }
 Stop-Transcript | Out-Null
 if ($Sessiz) { exit 0 }

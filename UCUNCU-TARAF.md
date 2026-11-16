@@ -27,9 +27,9 @@ Git blob özetleri (GitHub'daki dosyayla karşılaştırmak için, `git hash-obj
 
 ## Kurulum programı
 
-`dpi-lite-kurulum-<sürüm>.exe`, [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7.3 ile derlenir ve onun
+`SlipDPI-kurulum-<sürüm>.exe`, [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7.3 ile derlenir ve onun
 kurulum çalıştırıcısını içerir. Inno Setup kendi lisansıyla dağıtılır
-(<https://jrsoftware.org/files/is/license.txt>). Kurulum tanımı `kurulum\dpi-lite.iss` dosyasındadır;
+(<https://jrsoftware.org/files/is/license.txt>). Kurulum tanımı `kurulum\SlipDPI.iss` dosyasındadır;
 derleme `paketle.ps1` ile yapılır. Kurulum programı imzasızdır.
 
 ## Bilinmesi gerekenler

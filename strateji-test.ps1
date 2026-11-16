@@ -1,10 +1,10 @@
-# dpi-lite : strateji testi ve secimi
+# SlipDPI : strateji testi ve secimi
 #
 # Ne yapar: winws motorunu sirayla farkli ayarlarla GECICI olarak calistirir, her birinde engelli
 # adreslere (Discord, Roblox, Wattpad) ve engelsiz kontrol adreslerine baglanmayi dener, bu hatta
 # calisan ayari secer ve yerel\strateji.json dosyasina yazar. kur.ps1 o dosyayi kullanir.
 #
-# Kalici hicbir sey kurmaz. dpi-lite servisi calisiyorsa test suresince durdurur, sonunda geri baslatir.
+# Kalici hicbir sey kurmaz. SlipDPI servisi calisiyorsa test suresince durdurur, sonunda geri baslatir.
 # Bitince test motorunu durdurur ve WinDivert surucusunu bellekten kaldirir.
 #
 # Tek basina:  strateji-test.ps1          (yonetici izni ister)
@@ -108,7 +108,7 @@ $servisCalisiyordu = $false
 if (-not $Icerden) {
     $svc = Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue
     if ($svc -and $svc.Status -eq 'Running') {
-        Write-Host 'dpi-lite servisi test suresince durduruluyor (sonunda geri baslatilacak)...'
+        Write-Host 'SlipDPI servisi test suresince durduruluyor (sonunda geri baslatilacak)...'
         Stop-Service -Name $ServisAdi -Force
         $servisCalisiyordu = $true
         Start-Sleep -Seconds 1
@@ -195,7 +195,7 @@ if ($secim) {
 
 if ($servisCalisiyordu) {
     Start-Service -Name $ServisAdi -ErrorAction SilentlyContinue
-    Write-Host 'dpi-lite servisi eski ayariyla geri baslatildi. Yeni secimi uygulamak icin kur.ps1 calistir.'
+    Write-Host 'SlipDPI servisi eski ayariyla geri baslatildi. Yeni secimi uygulamak icin kur.ps1 calistir.'
 }
 if (-not $Icerden) {
     $net = Test-Connection 1.1.1.1 -Count 2 -Quiet

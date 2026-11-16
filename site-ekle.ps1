@@ -1,4 +1,4 @@
-# dpi-lite : elle listeye site ekleme / listeden cikarma
+# SlipDPI : elle listeye site ekleme / listeden cikarma
 # Kullanim:  site-ekle.ps1 ornek.com           (ad verilmezse sorar)
 #            site-ekle.ps1 ornek.com -Cikar    (listeden cikarir)
 # lists\siteler.txt dosyasini degistirir ve kur.ps1 i yeniden calistirir

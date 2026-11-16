@@ -1,4 +1,4 @@
-﻿# dpi-lite : kontrol penceresi
+﻿# SlipDPI : kontrol penceresi
 #
 # Durumu, secili ayari ve listeleri gosterir; ac/kapat, site ekle/cikar, yeniden test, onar ve kaldir
 # dugmeleri vardir. Kendisi yonetici olarak calismaz: bir dugmeye basilinca ilgili betigi yonetici
@@ -46,7 +46,10 @@ function Durum-Topla {
         $d.DnsSunucu = (@($st.dnsSunucu) -join ', ')
         try { $d.Kurulum = ([datetime]$st.kurulum).ToString('dd.MM.yyyy HH:mm') } catch { $d.Kurulum = "$($st.kurulum)" }
     }
-    if ($EkranGoruntusu) {      # goruntuye gercek liste icerigi girmesin
+    if ($EkranGoruntusu) {      # goruntuye gercek liste icerigi girmesin; durum da ornek (kurulu olmasa da cizilir)
+        $d.Kurulu = $true; $d.Calisiyor = $true; $d.Otomatik = $true
+        $d.Strateji = 'fake_ttl4'; $d.Ttl = 4; $d.DnsSeviye = 2; $d.DnsSunucu = '8.8.8.8, 8.8.4.4'
+        $d.Kurulum = (Get-Date).ToString('dd.MM.yyyy HH:mm')
         $d.Elle = @('ornek-site.com'); $d.Oto = @('ornek-video.com', 'cdn.ornek-video.com', 'ornek-forum.net'); $d.Haric = @('ornek-banka.com.tr')
     }
     [pscustomobject]$d
@@ -62,18 +65,20 @@ function Yeni($tip, $metin, $x, $y, $w, $h) {
 
 # ---- pencere -----------------------------------------------------------------------------------
 $form = New-Object Windows.Forms.Form
-$form.Text = 'dpi-lite'
+$form.Text = 'SlipDPI'
 $form.ClientSize = New-Object Drawing.Size(560, 588)
 $form.FormBorderStyle = 'FixedSingle'
 $form.MaximizeBox = $false
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object Drawing.Font('Segoe UI', 9)
 $form.BackColor = [Drawing.Color]::White
-$ikon = Join-Path $root 'dpi-lite.ico'
+$ikon = Join-Path $root 'SlipDPI.ico'
 if (Test-Path $ikon) { try { $form.Icon = New-Object Drawing.Icon($ikon) } catch { } }
 
-$lblBaslik = Yeni 'Label' 'dpi-lite' 16 12 300 30
+$lblBaslik = Yeni 'Label' 'SlipDPI' 16 12 96 30
 $lblBaslik.Font = New-Object Drawing.Font('Segoe UI Semibold', 15)
+$lblAlt = Yeni 'Label' 'lightweight DPI bypass for Windows' 112 21 300 18
+$lblAlt.ForeColor = $Gri
 
 $lblNokta = Yeni 'Label' ([string][char]0x25CF) 17 46 20 22
 $lblNokta.Font = New-Object Drawing.Font('Segoe UI Symbol', 11)
@@ -117,7 +122,7 @@ $btnKaldir = Yeni 'Button' 'Kaldır'          458 514 86 30
 $lblIs = Yeni 'Label' 'Hazır.' 18 556 526 20
 $lblIs.ForeColor = $Gri
 
-$form.Controls.AddRange(@($lblBaslik, $lblNokta, $lblDurum, $lblBilgi, $btnAcKapat, $grpEkle, $tabs, $btnTest, $btnOnar, $btnKayit, $btnKilavuz, $btnKaldir, $lblIs))
+$form.Controls.AddRange(@($lblBaslik, $lblAlt, $lblNokta, $lblDurum, $lblBilgi, $btnAcKapat, $grpEkle, $tabs, $btnTest, $btnOnar, $btnKayit, $btnKilavuz, $btnKaldir, $lblIs))
 $form.AcceptButton = $btnEkle
 
 # Fareyle uzerine gelince dugmenin ne yaptigini soyleyen ipuclari
@@ -129,7 +134,7 @@ $ipucu.SetToolTip($btnTest,    "Hattı baştan test edip ayarı yeniden seçer (
 $ipucu.SetToolTip($btnOnar,    "Kurulum adımlarını yeniden çalıştırır: servis, DNS kuralı, tarayıcı ayarı, doğrulama.`nSeçili ayarı değiştirmez.")
 $ipucu.SetToolTip($btnKayit,   "Son kurulumun kaydını Not Defteri'nde açar: hangi ayar seçildi, doğrulama geçti mi.`nBir şey çalışmadığında nedenine buradan bakılır.")
 $ipucu.SetToolTip($btnKilavuz, "Kullanım kılavuzunu Not Defteri'nde açar.")
-$ipucu.SetToolTip($btnKaldir, "dpi-lite'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
+$ipucu.SetToolTip($btnKaldir, "SlipDPI'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
 
 $islemDugmeleri = @($btnAcKapat, $btnEkle, $sElle.Dugme, $sOto.Dugme, $sHaric.Dugme, $btnTest, $btnOnar, $btnKaldir)
 
@@ -202,7 +207,7 @@ $btnAcKapat.Add_Click({
 
 $btnEkle.Add_Click({
     $d = Alan-Temizle $txtSite.Text
-    if (-not $d) { [void][Windows.Forms.MessageBox]::Show($form, 'Geçerli bir site adı yaz. Örnek: ornek.com', 'dpi-lite', 'OK', 'Information'); return }
+    if (-not $d) { [void][Windows.Forms.MessageBox]::Show($form, 'Geçerli bir site adı yaz. Örnek: ornek.com', 'SlipDPI', 'OK', 'Information'); return }
     $txtSite.Text = ''
     Baslat 'site-ekle.ps1' "-Alan $d -Panel" "$d ekleniyor"
 })
@@ -221,7 +226,7 @@ $sHaric.Dugme.Add_Click({
 })
 
 $btnTest.Add_Click({
-    $c = [Windows.Forms.MessageBox]::Show($form, "Hat baştan test edilip ayar yeniden seçilecek.`n`n2-3 dakika sürer; bu sırada engelli siteler ve Discord kapanır.`n`nDevam edilsin mi?", 'dpi-lite', 'YesNo', 'Question')
+    $c = [Windows.Forms.MessageBox]::Show($form, "Hat baştan test edilip ayar yeniden seçilecek.`n`n2-3 dakika sürer; bu sırada engelli siteler ve Discord kapanır.`n`nDevam edilsin mi?", 'SlipDPI', 'YesNo', 'Question')
     if ($c -eq 'Yes') { Baslat 'kur.ps1' '-Kurulumdan -YenidenTest' 'Hat test ediliyor' }
 })
 $btnOnar.Add_Click({ Baslat 'kur.ps1' '-Kurulumdan' 'Yeniden kuruluyor' })
@@ -229,17 +234,17 @@ $btnOnar.Add_Click({ Baslat 'kur.ps1' '-Kurulumdan' 'Yeniden kuruluyor' })
 $btnKayit.Add_Click({
     $log = Join-Path $root 'yerel\kur.log'
     if (Test-Path $log) { Start-Process notepad.exe -ArgumentList "`"$log`"" }
-    else { [void][Windows.Forms.MessageBox]::Show($form, 'Henüz bir kurulum kaydı yok.', 'dpi-lite', 'OK', 'Information') }
+    else { [void][Windows.Forms.MessageBox]::Show($form, 'Henüz bir kurulum kaydı yok.', 'SlipDPI', 'OK', 'Information') }
 })
 
 $btnKilavuz.Add_Click({
     $kilavuz = Join-Path $root 'README.md'
     if (Test-Path $kilavuz) { Start-Process notepad.exe -ArgumentList "`"$kilavuz`"" }
-    else { [void][Windows.Forms.MessageBox]::Show($form, 'Kılavuz dosyası (README.md) bulunamadı.', 'dpi-lite', 'OK', 'Information') }
+    else { [void][Windows.Forms.MessageBox]::Show($form, 'Kılavuz dosyası (README.md) bulunamadı.', 'SlipDPI', 'OK', 'Information') }
 })
 
 $btnKaldir.Add_Click({
-    $c = [Windows.Forms.MessageBox]::Show($form, "dpi-lite kaldırılacak: servis, DNS kuralı ve tarayıcı ayarı geri alınır, otomatik liste silinir.`n`nEngelli siteler yeniden kapanır. Devam edilsin mi?", 'dpi-lite', 'YesNo', 'Warning')
+    $c = [Windows.Forms.MessageBox]::Show($form, "SlipDPI kaldırılacak: servis, DNS kuralı ve tarayıcı ayarı geri alınır, otomatik liste silinir.`n`nEngelli siteler yeniden kapanır. Devam edilsin mi?", 'SlipDPI', 'YesNo', 'Warning')
     if ($c -ne 'Yes') { return }
     $unins = Join-Path $Hedef 'unins000.exe'
     if ((Kurulu-Duzen $root) -and (Test-Path $unins)) { Start-Process $unins; $form.Close() }

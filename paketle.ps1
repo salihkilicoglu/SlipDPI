@@ -1,7 +1,7 @@
-# dpi-lite : dagitim dosyalarini uretir
+# SlipDPI : dagitim dosyalarini uretir
 #
-#   cikti\dpi-lite-<surum>.zip            : paket (ac, kur.cmd calistir)
-#   cikti\dpi-lite-kurulum-<surum>.exe    : kurulum programi (Inno Setup)
+#   cikti\SlipDPI-<surum>.zip            : paket (ac, kur.cmd calistir)
+#   cikti\SlipDPI-kurulum-<surum>.exe    : kurulum programi (Inno Setup)
 #   cikti\SHA256SUMS.txt                  : ikisinin ozetleri
 #
 # Yalnizca commit'lenmis dosyalari paketler (git archive HEAD); zip ile exe ayni icerikten uretilir.
@@ -21,23 +21,23 @@ $cikti   = Join-Path $root 'cikti'
 $derleme = Join-Path $cikti '_derleme'
 New-Item -ItemType Directory -Force $cikti | Out-Null
 if (Test-Path $derleme) { Remove-Item $derleme -Recurse -Force }
-$zip = Join-Path $cikti "dpi-lite-$Surum.zip"
-$exe = Join-Path $cikti "dpi-lite-kurulum-$Surum.exe"
+$zip = Join-Path $cikti "SlipDPI-$Surum.zip"
+$exe = Join-Path $cikti "SlipDPI-kurulum-$Surum.exe"
 Remove-Item $zip, $exe -Force -ErrorAction SilentlyContinue
 
 Write-Host "== zip (git archive HEAD: $(git -C $root rev-parse --short HEAD)) ==" -ForegroundColor Cyan
-git -C $root archive --format=zip --prefix=dpi-lite/ -o $zip HEAD
+git -C $root archive --format=zip --prefix=SlipDPI/ -o $zip HEAD
 if ($LASTEXITCODE -ne 0) { throw 'git archive basarisiz' }
 
 Write-Host '== kurulum programi (Inno Setup) ==' -ForegroundColor Cyan
 Expand-Archive -Path $zip -DestinationPath $derleme -Force
-$kaynak = Join-Path $derleme 'dpi-lite'
+$kaynak = Join-Path $derleme 'SlipDPI'
 # Paketteki motor dosyalari depodaki ozet listesiyle ayni mi?
 foreach ($line in (Get-Content (Join-Path $kaynak 'bin\SHA256SUMS.txt') | Where-Object { $_.Trim() })) {
     $p = $line.Trim() -split '\s+', 2
     if ((Get-FileHash (Join-Path $kaynak "bin\$($p[1])") -Algorithm SHA256).Hash.ToLowerInvariant() -ne $p[0].ToLowerInvariant()) { throw "Paketteki bin\$($p[1]) ozeti eslesmiyor" }
 }
-$log = & $iscc "/DAppVer=$Surum" "/DKaynak=$kaynak" "/DCikti=$cikti" (Join-Path $root 'kurulum\dpi-lite.iss')
+$log = & $iscc "/DAppVer=$Surum" "/DKaynak=$kaynak" "/DCikti=$cikti" (Join-Path $root 'kurulum\SlipDPI.iss')
 $kod = $LASTEXITCODE
 $log | Set-Content -Path (Join-Path $cikti 'iscc.log') -Encoding UTF8
 if ($kod -ne 0) { $log | Select-Object -Last 15 | Out-Host; throw "ISCC basarisiz (cikis kodu $kod)" }

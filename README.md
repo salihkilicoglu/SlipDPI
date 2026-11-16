@@ -1,11 +1,32 @@
-# dpi-lite
+# SlipDPI
+
+**Lightweight DPI bypass for Windows** · [English](README.en.md)
 
 Türkiye'deki site adı (SNI) tabanlı erişim engellerini VPN kullanmadan aşan küçük bir Windows programı.
-Trafik doğrudan hedefe gider; hız ve ping değişmez, IP adresin aynı kalır.
+Trafik doğrudan hedefe gider; hız ve ping değişmez, IP adresin aynı kalır. Oyun trafiğine hiç dokunmaz,
+oyunlarda ping artmaz.
 
-![dpi-lite kontrol penceresi](docs/panel.png)
+![SlipDPI kontrol penceresi](docs/panel.png)
 
 *Görüntüdeki siteler örnek veridir.*
+
+## Neden "hafif"
+
+SlipDPI bilerek az şey yapar:
+
+- **Yalnızca gerekene dokunur.** Bütün trafiği değil, listedeki alan adlarına giden bağlantıların
+  yalnızca açılışını değiştirir. Geri kalan her şey olduğu gibi geçer.
+- **Tünel, VPN, proxy yok.** Trafik başka bir sunucudan ya da bilgisayardaki bir ara programdan
+  dolaşmaz; hız ve ping bu yüzden değişmez.
+- **Tek ayar.** Onlarca hazır ayar arasından seçtirmez. Kurulumda hattını test eder, çalışan en sade
+  ayarı kendisi seçer.
+- **Arka planda tek küçük servis.** Sistem tepsisinde bekleyen bir program yoktur; kontrol penceresi
+  yalnızca açtığında çalışır. Servis yaklaşık 8 MB bellek kullanır.
+- **Küçük kurulum.** Kurulum programı yaklaşık 3 MB'tır; Windows'un genel DNS ayarına dokunmaz ve
+  kaldırılınca geride bir şey bırakmaz.
+
+Karşılığında yapmadıkları da var: IP adresini gizlemez, trafiği şifrelemez, IP adresine göre yapılan
+engelleri aşmaz. Bunlar için VPN gerekir.
 
 ## Neye dokunur, neye dokunmaz
 
@@ -14,7 +35,7 @@ bağlantıları değiştirir.
 
 | Trafik | Ne olur |
 |---|---|
-| Oyun sunucusu bağlantıları, sesli sohbet, 443 dışındaki bütün portlar | Programa hiç uğramaz |
+| Oyun sunucusu bağlantıları, oyun içi sesli sohbet, 443 dışındaki bütün portlar | Programa hiç uğramaz |
 | Listede olmayan sitelere ve servislere giden HTTPS bağlantıları (tarayıcı, oyun başlatıcıları, güncellemeler) | Bakılır, değiştirilmeden geçer |
 | Listedeki alan adlarına giden bağlantılar ve Discord ses bağlantısının ilk paketi | Engeli aşacak şekilde değiştirilir |
 
@@ -36,7 +57,7 @@ yönlendirilmez; paketler program yokken gittiği yoldan gider.
 
 ## Kurulum
 
-1. [Releases](../../releases) sayfasından `dpi-lite-kurulum-<sürüm>.exe` dosyasını indirip çalıştır.
+1. [Releases](../../releases) sayfasından `SlipDPI-kurulum-<sürüm>.exe` dosyasını indirip çalıştır.
 2. Windows "Kişisel bilgisayarınızı korudu" uyarısı verirse "Ek bilgi" → "Yine de çalıştır". Kurulum
    programı imzasızdır; dosyayı aynı sayfadaki `SHA256SUMS.txt` ile karşılaştırabilirsin.
 3. Başlat menüsü ve masaüstü kısayolu isteyip istemediğini seç.
@@ -45,16 +66,16 @@ yönlendirilmez; paketler program yokken gittiği yoldan gider.
 
 Bilgisayarı yeniden başlatmak gerekmez. Program açılışta kendiliğinden başlar.
 
-Kurulum programı yerine `dpi-lite-<sürüm>.zip` dosyasını bir klasöre açıp `kur.cmd` dosyasına çift
+Kurulum programı yerine `SlipDPI-<sürüm>.zip` dosyasını bir klasöre açıp `kur.cmd` dosyasına çift
 tıklayarak da kurabilirsin.
 
-**Sisteme ne kurar:** `dpi-lite` adlı bir servis ve WinDivert sürücüsü, `C:\Program Files\dpi-lite`
+**Sisteme ne kurar:** `SlipDPI` adlı bir servis ve WinDivert sürücüsü, `C:\Program Files\SlipDPI`
 klasörü, listedeki alan adları için bir DNS kuralı, Chrome için Güvenli DNS ayarı. Windows'un genel DNS
 ayarına dokunmaz.
 
 ## Kullanım
 
-"dpi-lite" kısayolu (kısayol seçmediysen `C:\Program Files\dpi-lite\panel.cmd`) kontrol penceresini açar.
+"SlipDPI" kısayolu (kısayol seçmediysen `C:\Program Files\SlipDPI\panel.cmd`) kontrol penceresini açar.
 Pencere yalnızca açıkken çalışır; kapatınca program arka planda çalışmaya devam eder.
 
 - **Durdur / Başlat:** programı kapatır ya da açar. Durdurulmuşsa açılışta da başlamaz.
@@ -94,7 +115,7 @@ olarak durur ve açtığın engelli sitelerin adlarını içerir.
 
 ## Kaldırma
 
-Ayarlar → Uygulamalar → dpi-lite → Kaldır, ya da kontrol penceresindeki "Kaldır". Zip ile kurduysan
+Ayarlar → Uygulamalar → SlipDPI → Kaldır, ya da kontrol penceresindeki "Kaldır". Zip ile kurduysan
 `kaldir.cmd`. Servis, sürücü, DNS kuralı, Chrome ayarı, kısayollar ve listeler silinir; sistem kurulumdan
 önceki haline döner.
 

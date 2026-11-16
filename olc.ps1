@@ -1,4 +1,4 @@
-# dpi-lite : hiz / gecikme olcumu  (yonetici gerektirmez, hicbir seyi degistirmez)
+# SlipDPI : hiz / gecikme olcumu  (yonetici gerektirmez, hicbir seyi degistirmez)
 # Motor kapaliyken ve acikken calistirip sonuclari karsilastirmak icin; sonuc yerel\olcum-<etiket>.json.
 # Kullanim:  powershell -ExecutionPolicy Bypass -File olc.ps1 -Etiket once
 # Not: indirme olcumu kisa (50 MB) ve dalgalidir; test sunucusu cok istekte 429 ile reddedebilir.
@@ -40,7 +40,7 @@ for ($i = 0; $i -lt 5; $i++) {
 }
 $out.indirme_mbps = $dl
 
-$tmp = Join-Path $env:TEMP 'dpi-lite-upload.bin'
+$tmp = Join-Path $env:TEMP 'SlipDPI-upload.bin'
 $buf = New-Object byte[] (40MB); (New-Object Random).NextBytes($buf); [IO.File]::WriteAllBytes($tmp, $buf)
 $ul = @()
 for ($i = 0; $i -lt 3; $i++) {
@@ -57,7 +57,7 @@ try {
     New-Item -ItemType Directory -Force $yerel -ErrorAction Stop | Out-Null
     $json | Set-Content -Path (Join-Path $yerel "olcum-$Etiket.json") -Encoding UTF8 -ErrorAction Stop
 } catch {
-    $yerel = Join-Path $env:LOCALAPPDATA 'dpi-lite'
+    $yerel = Join-Path $env:LOCALAPPDATA 'SlipDPI'
     New-Item -ItemType Directory -Force $yerel | Out-Null
     $json | Set-Content -Path (Join-Path $yerel "olcum-$Etiket.json") -Encoding UTF8
 }

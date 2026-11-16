@@ -1,38 +1,53 @@
-# dpi-lite : simge dosyasini (dpi-lite.ico) uretir. Yalnizca gelistirici icin; simge depoda kayitlidir.
+# SlipDPI : simge dosyasini (SlipDPI.ico) uretir. Yalnizca gelistirici icin; simge depoda kayitlidir.
 # Koyu yuvarlak kose kare icinde yesil nokta: penceredeki "calisiyor" gostergesiyle ayni.
 # Klasik (BMP tabanli, 32 bit) ICO yazar: Inno Setup, kisayollar ve WinForms sorunsuz okur.
-param([string]$Cikti = (Join-Path (Split-Path $PSScriptRoot -Parent) 'dpi-lite.ico'))
+#
+# Pikseller cizim kutuphanesiyle degil dogrudan hesaplanir (piksel basina 8x8 ornek): boylece sekil
+# her boyutta tuvalin tam ortasina gore simetrik olur. GDI+ ile cizilen onceki surumde nokta yarim
+# piksel kadar kayiyordu.
+param([string]$Cikti = (Join-Path (Split-Path $PSScriptRoot -Parent) 'SlipDPI.ico'))
 
-Add-Type -AssemblyName System.Drawing
-
-function Ciz([int]$s) {
-    $bmp = New-Object Drawing.Bitmap($s, $s, [Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $g = [Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = 'AntiAlias'; $g.PixelOffsetMode = 'HighQuality'
-    $g.Clear([Drawing.Color]::Transparent)
-    $r = [single]($s * 0.22); $d = $r * 2; $m = [single]($s - 1)
-    $yol = New-Object Drawing.Drawing2D.GraphicsPath
-    $yol.AddArc(0, 0, $d, $d, 180, 90); $yol.AddArc($m - $d, 0, $d, $d, 270, 90)
-    $yol.AddArc($m - $d, $m - $d, $d, $d, 0, 90); $yol.AddArc(0, $m - $d, $d, $d, 90, 90); $yol.CloseFigure()
-    $zemin = New-Object Drawing.SolidBrush([Drawing.Color]::FromArgb(255, 15, 23, 42))
-    $g.FillPath($zemin, $yol)
-    $c = [single]($s * 0.56); $o = [single](($s - $c) / 2)
-    $hale = New-Object Drawing.SolidBrush([Drawing.Color]::FromArgb(70, 34, 197, 94))
-    $g.FillEllipse($hale, $o - $s * 0.07, $o - $s * 0.07, $c + $s * 0.14, $c + $s * 0.14)
-    $yesil = New-Object Drawing.SolidBrush([Drawing.Color]::FromArgb(255, 34, 197, 94))
-    $g.FillEllipse($yesil, $o, $o, $c, $c)
-    $g.Dispose()
-    $bmp
+Add-Type -TypeDefinition @'
+using System;
+public static class SlipIkon {
+    static double Kare(double px, double py, double s, double r) {      // yuvarlak koseli karenin icinde mi
+        double h = s / 2.0, dx = Math.Abs(px - h) - (h - r), dy = Math.Abs(py - h) - (h - r);
+        if (dx <= 0 || dy <= 0) return (Math.Max(dx, dy) <= r) ? 1 : 0;
+        return (dx * dx + dy * dy <= r * r) ? 1 : 0;
+    }
+    // BGRA, satirlar ustten alta
+    public static byte[] Ciz(int s) {
+        const int N = 8;
+        double h = s / 2.0, r = s * 0.22;
+        double nokta = Math.Round(s * 0.28);            // yaricap: tam piksel, cap cift sayi
+        double hale = nokta + s * 0.07;
+        byte[] o = new byte[s * s * 4];
+        for (int y = 0; y < s; y++) for (int x = 0; x < s; x++) {
+            double a = 0, rr = 0, gg = 0, bb = 0;
+            for (int j = 0; j < N; j++) for (int i = 0; i < N; i++) {
+                double px = x + (i + 0.5) / N, py = y + (j + 0.5) / N;
+                if (Kare(px, py, s, r) == 0) continue;
+                double d2 = (px - h) * (px - h) + (py - h) * (py - h);
+                double cr = 15, cg = 23, cb = 42;                         // zemin
+                if (d2 <= nokta * nokta) { cr = 34; cg = 197; cb = 94; }  // nokta
+                else if (d2 <= hale * hale) { double k = 70 / 255.0; cr += (34 - cr) * k; cg += (197 - cg) * k; cb += (94 - cb) * k; }
+                a += 1; rr += cr; gg += cg; bb += cb;
+            }
+            int p = (y * s + x) * 4;
+            if (a > 0) {
+                o[p] = (byte)Math.Round(bb / a); o[p + 1] = (byte)Math.Round(gg / a); o[p + 2] = (byte)Math.Round(rr / a);
+                o[p + 3] = (byte)Math.Round(255 * a / (N * N));
+            }
+        }
+        return o;
+    }
 }
+'@
 
-$boyutlar = 16, 24, 32, 48, 64
+$boyutlar = 16, 20, 24, 32, 40, 48, 64
 $resimler = @()
 foreach ($s in $boyutlar) {
-    $bmp = Ciz $s
-    $kilit = $bmp.LockBits((New-Object Drawing.Rectangle(0, 0, $s, $s)), 'ReadOnly', [Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $ham = New-Object byte[] ($s * $s * 4)
-    [Runtime.InteropServices.Marshal]::Copy($kilit.Scan0, $ham, 0, $ham.Length)
-    $bmp.UnlockBits($kilit); $bmp.Dispose()
+    $ham = [SlipIkon]::Ciz($s)
     $ms = New-Object IO.MemoryStream
     $w = New-Object IO.BinaryWriter($ms)
     # BITMAPINFOHEADER (yukseklik iki kat: renk + maske)
@@ -51,7 +66,7 @@ $w.Write([int16]0); $w.Write([int16]1); $w.Write([int16]$boyutlar.Count)
 $ofs = 6 + 16 * $boyutlar.Count
 for ($i = 0; $i -lt $boyutlar.Count; $i++) {
     $s = $boyutlar[$i]; $veri = $resimler[$i]
-    $w.Write([byte]$s); $w.Write([byte]$s); $w.Write([byte]0); $w.Write([byte]0)
+    $w.Write([byte]($s -band 255)); $w.Write([byte]($s -band 255)); $w.Write([byte]0); $w.Write([byte]0)   # 256 -> 0
     $w.Write([int16]1); $w.Write([int16]32); $w.Write([int]$veri.Length); $w.Write([int]$ofs)
     $ofs += $veri.Length
 }

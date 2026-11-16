@@ -24,6 +24,9 @@ işlenir; hangi programın açtığı fark etmez.
 
 Değişiklik yalnızca bağlantının açılışında yapılır; indirme yönündeki veriye dokunulmaz.
 
+**Oyunlarda ping artmaz.** Oyun trafiği programın içinden geçmez, bir sunucuya ya da tünele de
+yönlendirilmez; paketler program yokken gittiği yoldan gider.
+
 ## Gereksinimler
 
 - Windows 11, 64 bit. Windows 10'da tarayıcı çalışır, Discord gibi uygulamalar açılmayabilir.

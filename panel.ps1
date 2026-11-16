@@ -6,9 +6,9 @@
 # It runs only while open; it leaves nothing in the background.
 #
 # This file contains Turkish characters, so it must be saved as UTF-8 (with BOM).
-# -EkranGoruntusu <file.png>: for the developer. Draws the window with SAMPLE lists, saves a screenshot
+# -Screenshot <file.png>: for the developer. Draws the window with SAMPLE lists, saves a screenshot
 #                              and closes (the real list contents do not end up in the image).
-param([string]$EkranGoruntusu, [int]$Sekme = 0)
+param([string]$Screenshot, [int]$Tab = 0)
 
 . (Join-Path $PSScriptRoot 'common.ps1')
 Add-Type -AssemblyName System.Windows.Forms
@@ -16,48 +16,48 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 $root       = $PSScriptRoot
-$ElleYol    = Join-Path $root 'lists\sites.txt'
-$HaricYol   = Join-Path $root 'lists\exclude.txt'
-$DiscordYol = Join-Path $root 'lists\discord.txt'
-$AlanDeseni = '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$'
-$script:Surec   = $null      # the running elevated process
-$script:SonImza = ''
+$ManualPath    = Join-Path $root 'lists\sites.txt'
+$ExcludePath   = Join-Path $root 'lists\exclude.txt'
+$DiscordPath = Join-Path $root 'lists\discord.txt'
+$DomainPattern = '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$'
+$script:RunningProcess   = $null      # the running elevated process
+$script:LastSignature = ''
 
-$Yesil  = [Drawing.Color]::FromArgb(22, 163, 74)
-$Turunc = [Drawing.Color]::FromArgb(217, 119, 6)
-$Gri    = [Drawing.Color]::FromArgb(107, 114, 128)
+$Green  = [Drawing.Color]::FromArgb(22, 163, 74)
+$Orange = [Drawing.Color]::FromArgb(217, 119, 6)
+$Gray    = [Drawing.Color]::FromArgb(107, 114, 128)
 
-function Durum-Topla {
-    $svc = Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue
-    $st  = Durum-Oku
+function Get-Status {
+    $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    $st  = Read-State
     $d = [ordered]@{
-        Kurulu    = [bool]$svc
-        Calisiyor = [bool]($svc -and $svc.Status -eq 'Running')
-        Otomatik  = [bool]($svc -and "$($svc.StartType)" -eq 'Automatic')
-        Strateji  = ''; Ttl = 0; DnsSeviye = 0; DnsSunucu = ''; Kurulum = ''
-        Elle      = @(Satirlar $ElleYol)
-        Oto       = @(Satirlar $AutoListe)
-        Haric     = @(Satirlar $HaricYol)
-        Discord   = @(Satirlar $DiscordYol)
+        Installed    = [bool]$svc
+        Running = [bool]($svc -and $svc.Status -eq 'Running')
+        AutoStart  = [bool]($svc -and "$($svc.StartType)" -eq 'Automatic')
+        Strategy  = ''; Ttl = 0; DnsLevel = 0; DnsServers = ''; İnstalledAt = ''
+        Manual      = @(Get-Lines $ManualPath)
+        Auto       = @(Get-Lines $AutoList)
+        Excluded     = @(Get-Lines $ExcludePath)
+        Discord   = @(Get-Lines $DiscordPath)
     }
     if ($st) {
-        $d.Strateji = "$($st.strateji)"; if ($st.ttl) { $d.Ttl = [int]$st.ttl }
-        if ($st.dnsSeviye) { $d.DnsSeviye = [int]$st.dnsSeviye }
-        $d.DnsSunucu = (@($st.dnsSunucu) -join ', ')
-        try { $d.Kurulum = ([datetime]$st.kurulum).ToString('dd.MM.yyyy HH:mm') } catch { $d.Kurulum = "$($st.kurulum)" }
+        $d.Strategy = "$($st.strategy)"; if ($st.ttl) { $d.Ttl = [int]$st.ttl }
+        if ($st.dnsLevel) { $d.DnsLevel = [int]$st.dnsLevel }
+        $d.DnsServers = (@($st.dnsServers) -join ', ')
+        try { $d.İnstalledAt = ([datetime]$st.installedAt).ToString('dd.MM.yyyy HH:mm') } catch { $d.İnstalledAt = "$($st.installedAt)" }
     }
-    if ($EkranGoruntusu) {      # no real list contents in the image; status is sample too (drawn even when not installed)
-        $d.Kurulu = $true; $d.Calisiyor = $true; $d.Otomatik = $true
-        $d.Strateji = 'fake_ttl4'; $d.Ttl = 4; $d.DnsSeviye = 2; $d.DnsSunucu = '8.8.8.8, 8.8.4.4'
-        $d.Kurulum = (Get-Date).ToString('dd.MM.yyyy HH:mm')
-        $d.Elle = @('ornek-site.com'); $d.Oto = @('ornek-video.com', 'cdn.ornek-video.com', 'ornek-forum.net'); $d.Haric = @('ornek-banka.com.tr')
+    if ($Screenshot) {      # no real list contents in the image; status is sample too (drawn even when not installed)
+        $d.Installed = $true; $d.Running = $true; $d.AutoStart = $true
+        $d.Strategy = 'fake_ttl4'; $d.Ttl = 4; $d.DnsLevel = 2; $d.DnsServers = '8.8.8.8, 8.8.4.4'
+        $d.İnstalledAt = (Get-Date).ToString('dd.MM.yyyy HH:mm')
+        $d.Manual = @('ornek-site.com'); $d.Auto = @('ornek-video.com', 'cdn.ornek-video.com', 'ornek-forum.net'); $d.Excluded = @('ornek-banka.com.tr')
     }
     [pscustomobject]$d
 }
 
-function Yeni($tip, $metin, $x, $y, $w, $h) {
-    $c = New-Object "System.Windows.Forms.$tip"
-    $c.Text = $metin
+function New-Control($typeName, $text, $x, $y, $w, $h) {
+    $c = New-Object "System.Windows.Forms.$typeName"
+    $c.Text = $text
     $c.Location = New-Object Drawing.Point($x, $y)
     $c.Size = New-Object Drawing.Size($w, $h)
     $c
@@ -72,213 +72,213 @@ $form.MaximizeBox = $false
 $form.StartPosition = 'CenterScreen'
 $form.Font = New-Object Drawing.Font('Segoe UI', 9)
 $form.BackColor = [Drawing.Color]::White
-$ikon = Join-Path $root 'SlipDPI.ico'
-if (Test-Path $ikon) { try { $form.Icon = New-Object Drawing.Icon($ikon) } catch { } }
+$iconPath = Join-Path $root 'SlipDPI.ico'
+if (Test-Path $iconPath) { try { $form.Icon = New-Object Drawing.Icon($iconPath) } catch { } }
 
-$lblBaslik = Yeni 'Label' 'SlipDPI' 16 12 96 30
-$lblBaslik.Font = New-Object Drawing.Font('Segoe UI Semibold', 15)
-$lblAlt = Yeni 'Label' 'lightweight DPI bypass for Windows' 112 21 300 18
-$lblAlt.ForeColor = $Gri
+$lblTitle = New-Control 'Label' 'SlipDPI' 16 12 96 30
+$lblTitle.Font = New-Object Drawing.Font('Segoe UI Semibold', 15)
+$lblSubtitle = New-Control 'Label' 'lightweight DPI bypass for Windows' 112 21 300 18
+$lblSubtitle.ForeColor = $Gray
 
-$lblNokta = Yeni 'Label' ([string][char]0x25CF) 17 46 20 22
-$lblNokta.Font = New-Object Drawing.Font('Segoe UI Symbol', 11)
-$lblDurum = Yeni 'Label' '' 38 48 370 20
-$lblDurum.Font = New-Object Drawing.Font('Segoe UI Semibold', 9.5)
-$lblBilgi = Yeni 'Label' '' 18 72 400 36
-$lblBilgi.ForeColor = $Gri
+$lblDot = New-Control 'Label' ([string][char]0x25CF) 17 46 20 22
+$lblDot.Font = New-Object Drawing.Font('Segoe UI Symbol', 11)
+$lblStatus = New-Control 'Label' '' 38 48 370 20
+$lblStatus.Font = New-Object Drawing.Font('Segoe UI Semibold', 9.5)
+$lblInfo = New-Control 'Label' '' 18 72 400 36
+$lblInfo.ForeColor = $Gray
 
-$btnAcKapat = Yeni 'Button' 'Durdur' 430 40 114 32
+$btnToggle = New-Control 'Button' 'Durdur' 430 40 114 32
 
-$grpEkle = Yeni 'GroupBox' 'Engelli site ekle  (örnek: ornek.com)' 16 116 528 62
-$txtSite = Yeni 'TextBox' '' 12 25 380 23
-$btnEkle = Yeni 'Button' 'Ekle' 402 23 112 27
-$grpEkle.Controls.AddRange(@($txtSite, $btnEkle))
+$grpAdd = New-Control 'GroupBox' 'Engelli site ekle  (örnek: ornek.com)' 16 116 528 62
+$txtSite = New-Control 'TextBox' '' 12 25 380 23
+$btnAdd = New-Control 'Button' 'Ekle' 402 23 112 27
+$grpAdd.Controls.AddRange(@($txtSite, $btnAdd))
 
-$tabs = Yeni 'TabControl' '' 16 190 528 312
-function Sekme($baslik, $dugmeMetni, $aciklama) {
+$tabs = New-Control 'TabControl' '' 16 190 528 312
+function New-ListTab($title, $buttonText, $description) {
     $tp = New-Object Windows.Forms.TabPage
-    $tp.Text = $baslik
+    $tp.Text = $title
     $tp.BackColor = [Drawing.Color]::White
-    $lb = Yeni 'ListBox' '' 8 8 392 230
+    $lb = New-Control 'ListBox' '' 8 8 392 230
     $lb.IntegralHeight = $false
-    $bt = Yeni 'Button' $dugmeMetni 408 8 104 44
-    if (-not $dugmeMetni) { $bt.Visible = $false; $lb.Width = 504 }      # read-only tab
-    $lbl = Yeni 'Label' $aciklama 8 244 504 34
-    $lbl.ForeColor = $Gri
+    $bt = New-Control 'Button' $buttonText 408 8 104 44
+    if (-not $buttonText) { $bt.Visible = $false; $lb.Width = 504 }      # read-only tab
+    $lbl = New-Control 'Label' $description 8 244 504 34
+    $lbl.ForeColor = $Gray
     $tp.Controls.AddRange(@($lb, $bt, $lbl))
     $tabs.TabPages.Add($tp)
-    [pscustomobject]@{ Sayfa = $tp; Liste = $lb; Dugme = $bt; Aciklama = $lbl; Baslik = $baslik }
+    [pscustomobject]@{ Page = $tp; List = $lb; Button = $bt; Description = $lbl; Title = $title }
 }
-$sDiscord = Sekme 'Discord'           ''                   'Discord''un alan adları kurulumla birlikte gelir ve her zaman işlenir; alt adları da kapsanır. Bu liste buradan değiştirilmez.'
-$sElle  = Sekme 'Elle eklenenler'     'Çıkar'              'Kendi eklediğin siteler. Üst alan adını eklemek bütün alt adlarını da kapsar (ornek.com, www.ornek.com, cdn.ornek.com).'
-$sOto   = Sekme 'Otomatik eklenenler' "Çıkar ve`nhariç tut" 'Bir site 60 saniye içinde üç kez açılışta kesilirse motor onu buraya kendisi ekler. Yanlış girdiyse çıkarıp hariç tutabilirsin.'
-$sHaric = Sekme 'Hariç tutulanlar'    'Geri al'            'Buradaki sitelere hiç dokunulmaz ve otomatik eklenmezler.'
+$tabDiscord = New-ListTab 'Discord'           ''                   'Discord''un alan adları kurulumla birlikte gelir ve her zaman işlenir; alt adları da kapsanır. Bu liste buradan değiştirilmez.'
+$tabManual  = New-ListTab 'Elle eklenenler'     'Çıkar'              'Kendi eklediğin siteler. Üst alan adını eklemek bütün alt adlarını da kapsar (ornek.com, www.ornek.com, cdn.ornek.com).'
+$tabAuto   = New-ListTab 'Otomatik eklenenler' "Çıkar ve`nhariç tut" 'Bir site 60 saniye içinde üç kez açılışta kesilirse motor onu buraya kendisi ekler. Yanlış girdiyse çıkarıp hariç tutabilirsin.'
+$tabExcluded = New-ListTab 'Hariç tutulanlar'    'Geri al'            'Buradaki sitelere hiç dokunulmaz ve otomatik eklenmezler.'
 
-$btnTest   = Yeni 'Button' 'Yeniden test et' 16 514 126 30
-$btnOnar   = Yeni 'Button' 'Onar'            150 514 86 30
-$btnKayit  = Yeni 'Button' 'Kurulum kaydı'   244 514 112 30
-$btnKilavuz = Yeni 'Button' 'Kılavuz'        364 514 86 30
-$btnKaldir = Yeni 'Button' 'Kaldır'          458 514 86 30
-$lblIs = Yeni 'Label' 'Hazır.' 18 556 526 20
-$lblIs.ForeColor = $Gri
+$btnTest   = New-Control 'Button' 'Yeniden test et' 16 514 126 30
+$btnRepair   = New-Control 'Button' 'Onar'            150 514 86 30
+$btnLog  = New-Control 'Button' 'Kurulum kaydı'   244 514 112 30
+$btnGuide = New-Control 'Button' 'Kılavuz'        364 514 86 30
+$btnUninstall = New-Control 'Button' 'Kaldır'          458 514 86 30
+$lblTask = New-Control 'Label' 'Hazır.' 18 556 526 20
+$lblTask.ForeColor = $Gray
 
-$form.Controls.AddRange(@($lblBaslik, $lblAlt, $lblNokta, $lblDurum, $lblBilgi, $btnAcKapat, $grpEkle, $tabs, $btnTest, $btnOnar, $btnKayit, $btnKilavuz, $btnKaldir, $lblIs))
-$form.AcceptButton = $btnEkle
+$form.Controls.AddRange(@($lblTitle, $lblSubtitle, $lblDot, $lblStatus, $lblInfo, $btnToggle, $grpAdd, $tabs, $btnTest, $btnRepair, $btnLog, $btnGuide, $btnUninstall, $lblTask))
+$form.AcceptButton = $btnAdd
 
 # Tooltips that say what a button does when the mouse hovers over it
-$ipucu = New-Object Windows.Forms.ToolTip
-$ipucu.AutoPopDelay = 15000; $ipucu.InitialDelay = 350; $ipucu.ReshowDelay = 100
-$ipucu.SetToolTip($btnAcKapat, "Servisi durdurur ya da başlatır.`nDurdurulunca engelli siteler açılmaz ve servis açılışta da başlamaz.")
-$ipucu.SetToolTip($btnEkle,    "Siteyi listeye ekler ve kurulumu yeniler (birkaç saniye).")
-$ipucu.SetToolTip($btnTest,    "Hattı baştan test edip ayarı yeniden seçer (2-3 dakika).`nEngelli siteler yeniden kapanmaya başladıysa kullan.")
-$ipucu.SetToolTip($btnOnar,    "Kurulum adımlarını yeniden çalıştırır: servis, DNS kuralı, tarayıcı ayarı, doğrulama.`nSeçili ayarı değiştirmez.")
-$ipucu.SetToolTip($btnKayit,   "Son kurulumun kaydını Not Defteri'nde açar: hangi ayar seçildi, doğrulama geçti mi.`nBir şey çalışmadığında nedenine buradan bakılır.")
-$ipucu.SetToolTip($btnKilavuz, "Kullanım kılavuzunu Not Defteri'nde açar.")
-$ipucu.SetToolTip($btnKaldir, "SlipDPI'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
+$toolTip = New-Object Windows.Forms.ToolTip
+$toolTip.AutoPopDelay = 15000; $toolTip.InitialDelay = 350; $toolTip.ReshowDelay = 100
+$toolTip.SetToolTip($btnToggle, "Servisi durdurur ya da başlatır.`nDurdurulunca engelli siteler açılmaz ve servis açılışta da başlamaz.")
+$toolTip.SetToolTip($btnAdd,    "Siteyi listeye ekler ve kurulumu yeniler (birkaç saniye).")
+$toolTip.SetToolTip($btnTest,    "Hattı baştan test edip ayarı yeniden seçer (2-3 dakika).`nEngelli siteler yeniden kapanmaya başladıysa kullan.")
+$toolTip.SetToolTip($btnRepair,    "Kurulum adımlarını yeniden çalıştırır: servis, DNS kuralı, tarayıcı ayarı, doğrulama.`nSeçili ayarı değiştirmez.")
+$toolTip.SetToolTip($btnLog,   "Son kurulumun kaydını Not Defteri'nde açar: hangi ayar seçildi, doğrulama geçti mi.`nBir şey çalışmadığında nedenine buradan bakılır.")
+$toolTip.SetToolTip($btnGuide, "Kullanım kılavuzunu Not Defteri'nde açar.")
+$toolTip.SetToolTip($btnUninstall, "SlipDPI'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
 
-$islemDugmeleri = @($btnAcKapat, $btnEkle, $sElle.Dugme, $sOto.Dugme, $sHaric.Dugme, $btnTest, $btnOnar, $btnKaldir)
+$actionButtons = @($btnToggle, $btnAdd, $tabManual.Button, $tabAuto.Button, $tabExcluded.Button, $btnTest, $btnRepair, $btnUninstall)
 
 # ---- status display ----------------------------------------------------------------------------
-function Liste-Doldur($sekme, $ogeler) {
-    $secili = $sekme.Liste.SelectedItem
-    $sekme.Liste.BeginUpdate()
-    $sekme.Liste.Items.Clear()
-    foreach ($o in $ogeler) { [void]$sekme.Liste.Items.Add($o) }
-    if ($secili -and $sekme.Liste.Items.Contains($secili)) { $sekme.Liste.SelectedItem = $secili }
-    $sekme.Liste.EndUpdate()
-    $sekme.Sayfa.Text = "{0} ({1})" -f $sekme.Baslik, @($ogeler).Count
+function Fill-List($tab, $items) {
+    $selected = $tab.List.SelectedItem
+    $tab.List.BeginUpdate()
+    $tab.List.Items.Clear()
+    foreach ($o in $items) { [void]$tab.List.Items.Add($o) }
+    if ($selected -and $tab.List.Items.Contains($selected)) { $tab.List.SelectedItem = $selected }
+    $tab.List.EndUpdate()
+    $tab.Page.Text = "{0} ({1})" -f $tab.Title, @($items).Count
 }
 
-function Yenile {
-    $d = Durum-Topla
-    $imza = ($d | ConvertTo-Json -Compress -Depth 3)
-    if ($imza -eq $script:SonImza) { return }
-    $script:SonImza = $imza
+function Update-View {
+    $d = Get-Status
+    $signature = ($d | ConvertTo-Json -Compress -Depth 3)
+    if ($signature -eq $script:LastSignature) { return }
+    $script:LastSignature = $signature
 
-    if (-not $d.Kurulu) {
-        $lblNokta.ForeColor = $Gri; $lblDurum.Text = 'Kurulu değil'; $btnAcKapat.Text = 'Kur'
-    } elseif ($d.Calisiyor) {
-        $lblNokta.ForeColor = $Yesil; $btnAcKapat.Text = 'Durdur'
-        $lblDurum.Text = 'Çalışıyor' + $(if ($d.Otomatik) { '  ·  açılışta kendiliğinden başlar' } else { '' })
+    if (-not $d.Installed) {
+        $lblDot.ForeColor = $Gray; $lblStatus.Text = 'Kurulu değil'; $btnToggle.Text = 'Kur'
+    } elseif ($d.Running) {
+        $lblDot.ForeColor = $Green; $btnToggle.Text = 'Durdur'
+        $lblStatus.Text = 'Çalışıyor' + $(if ($d.AutoStart) { '  ·  açılışta kendiliğinden başlar' } else { '' })
     } else {
-        $lblNokta.ForeColor = $Turunc; $lblDurum.Text = 'Durduruldu  ·  engelli siteler açılmaz'; $btnAcKapat.Text = 'Başlat'
+        $lblDot.ForeColor = $Orange; $lblStatus.Text = 'Durduruldu  ·  engelli siteler açılmaz'; $btnToggle.Text = 'Başlat'
     }
 
-    $ayar = 'Ayar: henüz seçilmedi'
-    if ($d.Ttl -gt 0) { $ayar = "Ayar: sahte açılış paketi, ömür (TTL) $($d.Ttl)" }
-    elseif ($d.Strateji) { $ayar = 'Ayar: ' + ($d.Strateji -replace '--dpi-desync(-[a-z-]+)?=', '') }
+    $settingText = 'Ayar: henüz seçilmedi'
+    if ($d.Ttl -gt 0) { $settingText = "Ayar: sahte açılış paketi, ömür (TTL) $($d.Ttl)" }
+    elseif ($d.Strategy) { $settingText = 'Ayar: ' + ($d.Strategy -replace '--dpi-desync(-[a-z-]+)?=', '') }
     $dns = ''
-    if ($d.DnsSunucu) { $dns = "DNS: $($d.DnsSunucu)" + $(if ($d.DnsSeviye -eq 2) { ' (şifreli)' } elseif ($d.DnsSeviye -eq 0) { ' (çalışmıyor)' } else { '' }) }
-    $ikinci = @($dns, $(if ($d.Kurulum) { "Son kurulum: $($d.Kurulum)" } else { '' })) | Where-Object { $_ }
-    $lblBilgi.Text = $ayar + "`n" + ($ikinci -join '   ·   ')
+    if ($d.DnsServers) { $dns = "DNS: $($d.DnsServers)" + $(if ($d.DnsLevel -eq 2) { ' (şifreli)' } elseif ($d.DnsLevel -eq 0) { ' (çalışmıyor)' } else { '' }) }
+    $secondLine = @($dns, $(if ($d.İnstalledAt) { "Son kurulum: $($d.İnstalledAt)" } else { '' })) | Where-Object { $_ }
+    $lblInfo.Text = $settingText + "`n" + ($secondLine -join '   ·   ')
 
-    Liste-Doldur $sDiscord $d.Discord
-    Liste-Doldur $sElle  $d.Elle
-    Liste-Doldur $sOto   $d.Oto
-    Liste-Doldur $sHaric $d.Haric
+    Fill-List $tabDiscord $d.Discord
+    Fill-List $tabManual  $d.Manual
+    Fill-List $tabAuto   $d.Auto
+    Fill-List $tabExcluded $d.Excluded
 }
 
 # ---- actions -----------------------------------------------------------------------------------
-# Launches a script as administrator. $gizli: no window is shown, for short jobs.
-# $acikKalsin: the window stays open when the job ends (so the result can be read).
-function Baslat($betik, $arg, $etiket, [switch]$Gizli, [switch]$AcikKalsin) {
-    if ($script:Surec) { return }
-    $yol = Join-Path $root $betik
-    $a = '-NoProfile -ExecutionPolicy Bypass ' + $(if ($Gizli) { '-WindowStyle Hidden ' } else { '' }) + $(if ($AcikKalsin) { '-NoExit ' } else { '' }) + "-File `"$yol`" $arg"
+# Launches a script as administrator. $hidden: no window is shown, for short jobs.
+# $keepOpen: the window stays open when the job ends (so the result can be read).
+function Start-Task($scriptFile, $arg, $label, [switch]$Hidden, [switch]$KeepOpen) {
+    if ($script:RunningProcess) { return }
+    $filePath = Join-Path $root $scriptFile
+    $a = '-NoProfile -ExecutionPolicy Bypass ' + $(if ($Hidden) { '-WindowStyle Hidden ' } else { '' }) + $(if ($KeepOpen) { '-NoExit ' } else { '' }) + "-File `"$filePath`" $arg"
     try { $p = Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $a.Trim() -PassThru -ErrorAction Stop }
-    catch { $lblIs.Text = 'Yönetici izni verilmedi; işlem yapılmadı.'; return }
-    $script:Surec = $p
-    foreach ($b in $islemDugmeleri) { $b.Enabled = $false }
-    $lblIs.Text = "$etiket..." + $(if (-not $Gizli) { '  Açılan pencere iş bitince kapanır.' } else { '' })
+    catch { $lblTask.Text = 'Yönetici izni verilmedi; işlem yapılmadı.'; return }
+    $script:RunningProcess = $p
+    foreach ($b in $actionButtons) { $b.Enabled = $false }
+    $lblTask.Text = "$label..." + $(if (-not $Hidden) { '  Açılan pencere iş bitince kapanır.' } else { '' })
 }
 
-function Alan-Temizle($ham) {
-    $d = "$ham".Trim().ToLowerInvariant() -replace '^https?://', '' -replace '/.*$', '' -replace '^www\.', ''
-    if ($d -match $AlanDeseni) { return $d }
+function Normalize-Domain($raw) {
+    $d = "$raw".Trim().ToLowerInvariant() -replace '^https?://', '' -replace '/.*$', '' -replace '^www\.', ''
+    if ($d -match $DomainPattern) { return $d }
     return $null
 }
 
-$btnAcKapat.Add_Click({
-    $d = Durum-Topla
-    if (-not $d.Kurulu)   { Baslat 'install.ps1' '-Kurulumdan' 'Kuruluyor'; return }
-    if ($d.Calisiyor)     { Baslat 'toggle.ps1' '' 'Durduruluyor' -Gizli }
-    else                  { Baslat 'toggle.ps1' '' 'Başlatılıyor' -Gizli }
+$btnToggle.Add_Click({
+    $d = Get-Status
+    if (-not $d.Installed)   { Start-Task 'install.ps1' '-FromSetup' 'Kuruluyor'; return }
+    if ($d.Running)     { Start-Task 'toggle.ps1' '' 'Durduruluyor' -Hidden }
+    else                  { Start-Task 'toggle.ps1' '' 'Başlatılıyor' -Hidden }
 })
 
-$btnEkle.Add_Click({
-    $d = Alan-Temizle $txtSite.Text
+$btnAdd.Add_Click({
+    $d = Normalize-Domain $txtSite.Text
     if (-not $d) { [void][Windows.Forms.MessageBox]::Show($form, 'Geçerli bir site adı yaz. Örnek: ornek.com', 'SlipDPI', 'OK', 'Information'); return }
     $txtSite.Text = ''
-    Baslat 'add-site.ps1' "-Alan $d -Panel" "$d ekleniyor"
+    Start-Task 'add-site.ps1' "-Domain $d -Panel" "$d ekleniyor"
 })
 
-$sElle.Dugme.Add_Click({
-    $s = $sElle.Liste.SelectedItem; if (-not $s) { return }
-    Baslat 'add-site.ps1' "-Alan $s -Cikar -Panel" "$s çıkarılıyor"
+$tabManual.Button.Add_Click({
+    $s = $tabManual.List.SelectedItem; if (-not $s) { return }
+    Start-Task 'add-site.ps1' "-Domain $s -Remove -Panel" "$s çıkarılıyor"
 })
-$sOto.Dugme.Add_Click({
-    $s = $sOto.Liste.SelectedItem; if (-not $s) { return }
-    Baslat 'auto-list.ps1' "-Sil $s -Panel" "$s çıkarılıyor"
+$tabAuto.Button.Add_Click({
+    $s = $tabAuto.List.SelectedItem; if (-not $s) { return }
+    Start-Task 'auto-list.ps1' "-Delete $s -Panel" "$s çıkarılıyor"
 })
-$sHaric.Dugme.Add_Click({
-    $s = $sHaric.Liste.SelectedItem; if (-not $s) { return }
-    Baslat 'auto-list.ps1' "-HaricSil $s -Panel" "$s hariç listesinden çıkarılıyor"
+$tabExcluded.Button.Add_Click({
+    $s = $tabExcluded.List.SelectedItem; if (-not $s) { return }
+    Start-Task 'auto-list.ps1' "-Unexclude $s -Panel" "$s hariç listesinden çıkarılıyor"
 })
 
 $btnTest.Add_Click({
     $c = [Windows.Forms.MessageBox]::Show($form, "Hat baştan test edilip ayar yeniden seçilecek.`n`n2-3 dakika sürer; bu sırada engelli siteler ve Discord kapanır.`n`nDevam edilsin mi?", 'SlipDPI', 'YesNo', 'Question')
-    if ($c -eq 'Yes') { Baslat 'install.ps1' '-Kurulumdan -YenidenTest' 'Hat test ediliyor' }
+    if ($c -eq 'Yes') { Start-Task 'install.ps1' '-FromSetup -Retest' 'Hat test ediliyor' }
 })
-$btnOnar.Add_Click({ Baslat 'install.ps1' '-Kurulumdan' 'Yeniden kuruluyor' })
+$btnRepair.Add_Click({ Start-Task 'install.ps1' '-FromSetup' 'Yeniden kuruluyor' })
 
-$btnKayit.Add_Click({
+$btnLog.Add_Click({
     $log = Join-Path $root 'local\install.log'
     if (Test-Path $log) { Start-Process notepad.exe -ArgumentList "`"$log`"" }
     else { [void][Windows.Forms.MessageBox]::Show($form, 'Henüz bir kurulum kaydı yok.', 'SlipDPI', 'OK', 'Information') }
 })
 
-$btnKilavuz.Add_Click({
-    $kilavuz = Join-Path $root 'README.md'
-    if (Test-Path $kilavuz) { Start-Process notepad.exe -ArgumentList "`"$kilavuz`"" }
+$btnGuide.Add_Click({
+    $guidePath = Join-Path $root 'README.md'
+    if (Test-Path $guidePath) { Start-Process notepad.exe -ArgumentList "`"$guidePath`"" }
     else { [void][Windows.Forms.MessageBox]::Show($form, 'Kılavuz dosyası (README.md) bulunamadı.', 'SlipDPI', 'OK', 'Information') }
 })
 
-$btnKaldir.Add_Click({
+$btnUninstall.Add_Click({
     $c = [Windows.Forms.MessageBox]::Show($form, "SlipDPI kaldırılacak: servis, DNS kuralı ve tarayıcı ayarı geri alınır, otomatik liste silinir.`n`nEngelli siteler yeniden kapanır. Devam edilsin mi?", 'SlipDPI', 'YesNo', 'Warning')
     if ($c -ne 'Yes') { return }
-    $unins = Join-Path $Hedef 'unins000.exe'
-    if ((Kurulu-Duzen $root) -and (Test-Path $unins)) { Start-Process $unins; $form.Close() }
-    else { Baslat 'uninstall.ps1' '' 'Kaldırılıyor' -AcikKalsin }
+    $unins = Join-Path $InstallDir 'unins000.exe'
+    if ((Test-InstalledLayout $root) -and (Test-Path $unins)) { Start-Process $unins; $form.Close() }
+    else { Start-Task 'uninstall.ps1' '' 'Kaldırılıyor' -KeepOpen }
 })
 
 $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 2000
 $timer.Add_Tick({
-    if ($script:Surec) {
+    if ($script:RunningProcess) {
         # WaitForExit(0): works on an elevated process too (needs only the right to wait on it)
-        $bitti = $true
-        try { $bitti = $script:Surec.WaitForExit(0) } catch { $bitti = $true }
-        if (-not $bitti) { return }
-        $script:Surec = $null
-        foreach ($b in $islemDugmeleri) { $b.Enabled = $true }
-        $lblIs.Text = 'Bitti.'
+        $finished = $true
+        try { $finished = $script:RunningProcess.WaitForExit(0) } catch { $finished = $true }
+        if (-not $finished) { return }
+        $script:RunningProcess = $null
+        foreach ($b in $actionButtons) { $b.Enabled = $true }
+        $lblTask.Text = 'Bitti.'
     }
-    Yenile
+    Update-View
 })
 
-if ($EkranGoruntusu) {
+if ($Screenshot) {
     $form.Add_Shown({
-        Yenile
-        if ($Sekme -gt 0 -and $Sekme -lt $tabs.TabPages.Count) { $tabs.SelectedIndex = $Sekme }
+        Update-View
+        if ($Tab -gt 0 -and $Tab -lt $tabs.TabPages.Count) { $tabs.SelectedIndex = $Tab }
         $form.Refresh(); [Windows.Forms.Application]::DoEvents()
         $bmp = New-Object Drawing.Bitmap($form.Width, $form.Height)
         $form.DrawToBitmap($bmp, (New-Object Drawing.Rectangle(0, 0, $form.Width, $form.Height)))
-        $bmp.Save($EkranGoruntusu, [Drawing.Imaging.ImageFormat]::Png)
+        $bmp.Save($Screenshot, [Drawing.Imaging.ImageFormat]::Png)
         $bmp.Dispose()
         $form.Close()
     })
 } else {
-    $form.Add_Shown({ Yenile; $timer.Start(); $form.Activate() })
+    $form.Add_Shown({ Update-View; $timer.Start(); $form.Activate() })
 }
 [void]$form.ShowDialog()
 $timer.Dispose(); $form.Dispose()

@@ -1,10 +1,10 @@
 # SlipDPI : speed / latency measurement  (no administrator needed, changes nothing)
 # Run it with the engine off and on, then compare the results; output goes to local\measure-<Etiket>.json.
-# Usage:  powershell -ExecutionPolicy Bypass -File measure.ps1 -Etiket once
+# Usage:  powershell -ExecutionPolicy Bypass -File measure.ps1 -Label once
 # Note: the download test is short (50 MB) and noisy; the test server may reject with 429 on many requests.
-param([string]$Etiket = 'olcum')
+param([string]$Label = 'olcum')
 
-$out = [ordered]@{ etiket = $Etiket; zaman = (Get-Date).ToString('s'); motorCalisiyor = [bool](Get-Process winws -ErrorAction SilentlyContinue) }
+$out = [ordered]@{ label = $Label; time = (Get-Date).ToString('s'); engineRunning = [bool](Get-Process winws -ErrorAction SilentlyContinue) }
 
 # --- ping (20 packets) ---
 $out.ping = [ordered]@{}
@@ -12,7 +12,7 @@ foreach ($t in '1.1.1.1', '8.8.8.8', '162.159.138.232') {
     $r = @(Test-Connection -ComputerName $t -Count 20 -ErrorAction SilentlyContinue)
     if ($r.Count -gt 0) {
         $m = $r | Measure-Object ResponseTime -Average -Minimum -Maximum
-        $out.ping[$t] = [ordered]@{ ort = [math]::Round($m.Average, 1); min = $m.Minimum; max = $m.Maximum; kayip = 20 - $r.Count }
+        $out.ping[$t] = [ordered]@{ avg = [math]::Round($m.Average, 1); min = $m.Minimum; max = $m.Maximum; loss = 20 - $r.Count }
     } else { $out.ping[$t] = 'cevap yok' }
 }
 
@@ -38,7 +38,7 @@ for ($i = 0; $i -lt 5; $i++) {
     $p = "$o".Split('|')
     if ($p[0] -eq '200') { $dl += Mbps (Num $p[1]) } else { $dl += "http $($p[0])" }
 }
-$out.indirme_mbps = $dl
+$out.download_mbps = $dl
 
 $tmp = Join-Path $env:TEMP 'SlipDPI-upload.bin'
 $buf = New-Object byte[] (40MB); (New-Object Random).NextBytes($buf); [IO.File]::WriteAllBytes($tmp, $buf)
@@ -48,18 +48,18 @@ for ($i = 0; $i -lt 3; $i++) {
     $ul += Mbps (Num $o)
 }
 Remove-Item $tmp -Force -ErrorAction SilentlyContinue
-$out.yukleme_mbps = $ul
+$out.upload_mbps = $ul
 
 $json = [pscustomobject]$out | ConvertTo-Json -Depth 5
 # If the package is installed under Program Files it cannot write there; the result goes to the user folder.
-$yerel = Join-Path $PSScriptRoot 'local'
+$localDir = Join-Path $PSScriptRoot 'local'
 try {
-    New-Item -ItemType Directory -Force $yerel -ErrorAction Stop | Out-Null
-    $json | Set-Content -Path (Join-Path $yerel "measure-$Etiket.json") -Encoding UTF8 -ErrorAction Stop
+    New-Item -ItemType Directory -Force $localDir -ErrorAction Stop | Out-Null
+    $json | Set-Content -Path (Join-Path $localDir "measure-$Label.json") -Encoding UTF8 -ErrorAction Stop
 } catch {
-    $yerel = Join-Path $env:LOCALAPPDATA 'SlipDPI'
-    New-Item -ItemType Directory -Force $yerel | Out-Null
-    $json | Set-Content -Path (Join-Path $yerel "measure-$Etiket.json") -Encoding UTF8
+    $localDir = Join-Path $env:LOCALAPPDATA 'SlipDPI'
+    New-Item -ItemType Directory -Force $localDir | Out-Null
+    $json | Set-Content -Path (Join-Path $localDir "measure-$Label.json") -Encoding UTF8
 }
-Write-Host "Sonuc dosyasi: $(Join-Path $yerel "measure-$Etiket.json")"
+Write-Host "Sonuc dosyasi: $(Join-Path $localDir "measure-$Label.json")"
 $json

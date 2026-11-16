@@ -8,23 +8,23 @@
 # When done, stops the test engine and unloads the WinDivert driver from memory.
 #
 # Standalone:  strategy-test.ps1          (asks for administrator rights)
-# When called from install.ps1, -Icerden is used (elevation and the log file belong to install.ps1).
-param([switch]$Icerden)
+# When called from install.ps1, -Nested is used (elevation and the log file belong to install.ps1).
+param([switch]$Nested)
 
 . (Join-Path $PSScriptRoot 'common.ps1')
-if (-not $Icerden -and -not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
+if (-not $Nested -and -not (Test-Admin)) { Invoke-Elevated $PSCommandPath ''; return }
 
 $root   = $PSScriptRoot
-$yerel  = Yerel-Klasor $root
+$localDir  = Get-LocalDir $root
 $bin    = Join-Path $root 'bin'
 $winws  = Join-Path $bin  'winws.exe'
-$logDir = Join-Path $yerel 'test-log'
+$logDir = Join-Path $localDir 'test-log'
 New-Item -ItemType Directory -Force $logDir | Out-Null
-if (-not $Icerden) { HizliDuzenleme-Kapat; Start-Transcript -Path (Join-Path $yerel 'strategy-test.log') -Force | Out-Null }
+if (-not $Nested) { Disable-QuickEdit; Start-Transcript -Path (Join-Path $localDir 'strategy-test.log') -Force | Out-Null }
 
-function Bitir($msg) {
+function Finish-Test($msg) {
     if ($msg) { Write-Host $msg -ForegroundColor Yellow }
-    if (-not $Icerden) { Stop-Transcript | Out-Null }
+    if (-not $Nested) { Stop-Transcript | Out-Null }
 }
 
 # --- targets: names known to be blocked in Turkey. IPs are refreshed via DoH at start. -----------
@@ -38,7 +38,7 @@ $targets = @(
 )
 $controls = @('https://www.google.com/generate_204', 'https://github.com/', 'https://www.cloudflare.com/cdn-cgi/trace')
 # The test engine touches only these names (independent of the user's list files):
-$testListe = '--hostlist-domains=discord.com,discord.gg,discordapp.com,roblox.com,wattpad.com'
+$testList = '--hostlist-domains=discord.com,discord.gg,discordapp.com,roblox.com,wattpad.com'
 
 function Probe($url, $name, $ip) {
     $a = @('-s', '-o', 'NUL', '-w', '%{http_code}|%{time_appconnect}|%{exitcode}', '--ssl-no-revoke', '--connect-timeout', '3', '--max-time', '5')
@@ -79,17 +79,17 @@ function Summarize($r) {
 #     the distance to the inspection box; if TTL+1 also passes it is chosen (margin if the box moves a hop).
 #  2) Methods without a TTL, in order of preference. Here the fake packet reaches the server and we rely
 #     on the server dropping it; that is why no QUIC or voice rules are added (ttl = 0).
-function Sec-Strateji($report) {
-    $tam = @($report | Where-Object { $_.started -and $_.n -gt 0 -and $_.ok -eq $_.n -and $_.controlsOk -eq $_.controlsN })
-    $ttl = @($tam | ForEach-Object { if ($_.name -match '^fake_ttl(\d+)$') { [int]$Matches[1] } } | Sort-Object)
+function Select-Strategy($report) {
+    $passing = @($report | Where-Object { $_.started -and $_.n -gt 0 -and $_.ok -eq $_.n -and $_.controlsOk -eq $_.controlsN })
+    $ttl = @($passing | ForEach-Object { if ($_.name -match '^fake_ttl(\d+)$') { [int]$Matches[1] } } | Sort-Object)
     if ($ttl.Count -gt 0) {
-        $sec = $ttl[0]
-        if ($ttl -contains ($ttl[0] + 1)) { $sec = $ttl[0] + 1 }
-        return [ordered]@{ ad = "fake_ttl$sec"; tcp = "--dpi-desync=fake --dpi-desync-ttl=$sec"; ttl = $sec; gecenTtl = @($ttl) }
+        $picked = $ttl[0]
+        if ($ttl -contains ($ttl[0] + 1)) { $picked = $ttl[0] + 1 }
+        return [ordered]@{ name = "fake_ttl$picked"; tcp = "--dpi-desync=fake --dpi-desync-ttl=$picked"; ttl = $picked; passingTtls = @($ttl) }
     }
     foreach ($n in 'fake_md5sig', 'multidisorder_ovl', 'fake_mdisorder_md5', 'fakedsplit_md5', 'fake_badseq') {
-        $c = $tam | Where-Object { $_.name -eq $n } | Select-Object -First 1
-        if ($c) { return [ordered]@{ ad = $c.name; tcp = $c.args; ttl = 0; gecenTtl = @() } }
+        $c = $passing | Where-Object { $_.name -eq $n } | Select-Object -First 1
+        if ($c) { return [ordered]@{ name = $c.name; tcp = $c.args; ttl = 0; passingTtls = @() } }
     }
     return $null
 }
@@ -104,24 +104,24 @@ $candidates += @{ name = 'fakedsplit_md5';     args = '--dpi-desync=fakedsplit -
 $candidates += @{ name = 'fake_badseq';        args = '--dpi-desync=fake --dpi-desync-fooling=badseq' }
 
 # --- preconditions ------------------------------------------------------------------------------
-$servisCalisiyordu = $false
-if (-not $Icerden) {
-    $svc = Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue
+$serviceWasRunning = $false
+if (-not $Nested) {
+    $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($svc -and $svc.Status -eq 'Running') {
         Write-Host 'SlipDPI servisi test suresince durduruluyor (sonunda geri baslatilacak)...'
-        Stop-Service -Name $ServisAdi -Force
-        $servisCalisiyordu = $true
+        Stop-Service -Name $ServiceName -Force
+        $serviceWasRunning = $true
         Start-Sleep -Seconds 1
     }
 }
 $busy = @(Get-Process winws, winws2, goodbyedpi, ciadpi -ErrorAction SilentlyContinue)
 if ($busy.Count -gt 0) {
-    Bitir "Baska bir DPI araci calisiyor ($($busy[0].ProcessName)). Once onu kapat, sonra tekrar dene."
-    if ($Icerden) { throw 'strateji testi yapilamadi: baska bir DPI araci calisiyor' }
+    Finish-Test "Baska bir DPI araci calisiyor ($($busy[0].ProcessName)). Once onu kapat, sonra tekrar dene."
+    if ($Nested) { throw 'strateji testi yapilamadi: baska bir DPI araci calisiyor' }
     return
 }
 
-Say 'Hedef IP adresleri DoH ile tazeleniyor'
+Write-Step 'Hedef IP adresleri DoH ile tazeleniyor'
 foreach ($t in $targets) {
     try {
         $j = Invoke-RestMethod -Uri "https://dns.google/resolve?name=$($t.name)&type=A" -TimeoutSec 6
@@ -134,7 +134,7 @@ foreach ($t in $targets) {
 $report = @()
 $proc = $null
 try {
-    Say 'Temel durum (motor kapali) - hepsinin engelli cikmasi beklenir'
+    Write-Step 'Temel durum (motor kapali) - hepsinin engelli cikmasi beklenir'
     $r = RunProbes; $s = Summarize $r
     Write-Host ("  gecen: {0}/{1}   kontrol: {2}/{3}" -f $s.ok, $s.n, $s.controlsOk, $s.controlsN)
     Write-Host ("  " + $s.text)
@@ -143,8 +143,8 @@ try {
     $report += [pscustomobject]@{ name = 'baseline_off'; args = ''; started = $true; ok = $s.ok; n = $s.n; controlsOk = $s.controlsOk; controlsN = $s.controlsN; detail = $r }
 
     foreach ($c in $candidates) {
-        Say ("{0}   {1}" -f $c.name, $c.args)
-        $argLine = "--wf-tcp=443 --filter-tcp=443 $testListe $($c.args)"
+        Write-Step ("{0}   {1}" -f $c.name, $c.args)
+        $argLine = "--wf-tcp=443 --filter-tcp=443 $testList $($c.args)"
         $out = Join-Path $logDir "$($c.name).out.txt"; $err = Join-Path $logDir "$($c.name).err.txt"
         $proc = Start-Process -FilePath $winws -ArgumentList $argLine -WorkingDirectory $bin -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
         Start-Sleep -Milliseconds 2500
@@ -172,32 +172,32 @@ finally {
     # Unload the WinDivert driver from memory (the same two commands as upstream windivert_delete.cmd)
     sc.exe stop windivert   | Out-Null
     sc.exe delete windivert | Out-Null
-    $report | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $yerel 'strategy-test.json') -Encoding UTF8
+    $report | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $localDir 'strategy-test.json') -Encoding UTF8
 }
 
-Say 'OZET'
+Write-Step 'OZET'
 foreach ($x in $report) {
     $mark = ''; if ($x.started -and $x.n -gt 0 -and $x.ok -eq $x.n -and $x.controlsOk -eq $x.controlsN) { $mark = 'TAM' } elseif ($x.ok -gt 0) { $mark = 'KISMI' }
     Write-Host ("{0,-6} {1,-20} engelli: {2}/{3}   kontrol: {4}/{5}" -f $mark, $x.name, $x.ok, $x.n, $x.controlsOk, $x.controlsN)
 }
 
-$adaylar = @($report | Where-Object { $_.name -ne 'baseline_off' })
-$secim = Sec-Strateji $adaylar
-if ($secim) {
-    $secim['secildi'] = (Get-Date).ToString('s')
-    $secim['kaynak']  = 'strategy-test'
-    [pscustomobject]$secim | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $yerel 'strategy.json') -Encoding UTF8
-    Write-Host ("`nSecilen strateji: {0}   ({1})" -f $secim.ad, $secim.tcp) -ForegroundColor Green
-    if ($secim.ttl -gt 0) { Write-Host ("Gecen TTL degerleri: {0}. Denetim kutusu yaklasik {1}. atlamada." -f ($secim.gecenTtl -join ', '), $secim.gecenTtl[0]) }
+$candidateNames = @($report | Where-Object { $_.name -ne 'baseline_off' })
+$choice = Select-Strategy $candidateNames
+if ($choice) {
+    $choice['selectedAt'] = (Get-Date).ToString('s')
+    $choice['source']  = 'strategy-test'
+    [pscustomobject]$choice | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $localDir 'strategy.json') -Encoding UTF8
+    Write-Host ("`nSecilen strateji: {0}   ({1})" -f $choice.name, $choice.tcp) -ForegroundColor Green
+    if ($choice.ttl -gt 0) { Write-Host ("Gecen TTL degerleri: {0}. Denetim kutusu yaklasik {1}. atlamada." -f ($choice.passingTtls -join ', '), $choice.passingTtls[0]) }
 } else {
     Write-Host "`nBu hatta denenen ayarlarin hicbiri butun adresleri acmadi. Onceki secim (varsa) degistirilmedi." -ForegroundColor Yellow
 }
 
-if ($servisCalisiyordu) {
-    Start-Service -Name $ServisAdi -ErrorAction SilentlyContinue
+if ($serviceWasRunning) {
+    Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
     Write-Host 'SlipDPI servisi eski ayariyla geri baslatildi. Yeni secimi uygulamak icin install.ps1 calistir.'
 }
-if (-not $Icerden) {
+if (-not $Nested) {
     $net = Test-Connection 1.1.1.1 -Count 2 -Quiet
     Write-Host ("Test bitti. Internet: " + $(if ($net) { 'calisiyor' } else { 'YOK (yeniden baslat)' }))
     Stop-Transcript | Out-Null

@@ -1,16 +1,16 @@
-# SlipDPI : otomatik listeyi gosterme / listeden site cikarma
+# SlipDPI : show the auto list / remove a site from it
 #
-# Kullanim:
-#   otomatik-liste.ps1                      -> motorun kendi ekledigi siteleri gosterir (yonetici gerekmez)
-#   otomatik-liste.ps1 -Sil ornek.com       -> siteyi otomatik listeden cikarir VE lists\haric.txt dosyasina
-#                                              ekler, boylece motor onu bir daha eklemez
-#   otomatik-liste.ps1 -HaricSil ornek.com  -> siteyi haric listesinden cikarir (motor yeniden ogrenebilir)
-# Degisiklikten sonra kurulumu yeniler (UAC ister).
-# -Panel: kontrol penceresi bu anahtarla cagirir (is bitince pencere kendiliginden kapanir).
+# Usage:
+#   auto-list.ps1                        -> shows the sites the engine added by itself (no admin needed)
+#   auto-list.ps1 -Sil example.com       -> removes the site from the auto list AND adds it to
+#                                                lists\exclude.txt, so the engine never adds it again
+#   auto-list.ps1 -HaricSil example.com  -> removes the site from the exclude list (engine may relearn it)
+# Re-runs the install after a change (asks for UAC).
+# -Panel: the control window calls it with this switch (the window closes by itself when the work is done).
 param([string]$Sil, [string]$HaricSil, [switch]$Panel)
 
-. (Join-Path $PSScriptRoot 'ortak.ps1')
-$haric = Join-Path $PSScriptRoot 'lists\haric.txt'
+. (Join-Path $PSScriptRoot 'common.ps1')
+$haric = Join-Path $PSScriptRoot 'lists\exclude.txt'
 
 if (-not $Sil -and -not $HaricSil) {
     if (-not (Test-Path $AutoListe)) { Write-Host 'Otomatik liste yok (SlipDPI kurulu degil).'; Kapanmadan-Bekle; return }
@@ -32,7 +32,7 @@ if ($d -notmatch '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$') { Write-H
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath $(if ($Sil) { "-Sil $d" } else { "-HaricSil $d" }); return }
 
 if ($Sil) {
-    # motor dosyaya yazarken degistirmemek icin once servisi durdur
+    # stop the service first so we do not modify the file while the engine is writing to it
     Stop-Service -Name $ServisAdi -Force -ErrorAction SilentlyContinue
     Get-Process winws -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 1
@@ -48,4 +48,4 @@ if ($Sil) {
     Write-Host "Haric listesinden cikarildi: $d"
 }
 
-& (Join-Path $PSScriptRoot 'kur.ps1') -Kurulumdan:$Panel
+& (Join-Path $PSScriptRoot 'install.ps1') -Kurulumdan:$Panel

@@ -1,14 +1,14 @@
-# SlipDPI : betiklerin ortak fonksiyonlari.
-# Tek basina calistirilmaz; diger betikler bu dosyayi dot-source eder:  . "$PSScriptRoot\ortak.ps1"
+# SlipDPI : functions shared by the scripts.
+# Not meant to be run on its own; the other scripts dot-source this file:  . "$PSScriptRoot\common.ps1"
 
 $ServisAdi = 'SlipDPI'
 $Etiket    = 'SlipDPI'
 $Hedef     = Join-Path $env:ProgramFiles 'SlipDPI'
-$AutoListe = Join-Path $Hedef 'otomatik.txt'
-$AutoKayit = Join-Path $Hedef 'otomatik-kayit.log'
-$DurumYolu = Join-Path $Hedef 'durum.json'
+$AutoListe = Join-Path $Hedef 'auto.txt'
+$AutoKayit = Join-Path $Hedef 'auto-list.log'
+$DurumYolu = Join-Path $Hedef 'state.json'
 
-# Tarayici DNS politikasi icin kayit defteri kokleri (Chromium tabanli tarayicilar ayni adlari kullanir)
+# Registry roots for the browser DNS policy (Chromium-based browsers use the same value names)
 $PolitikaKok = @{
     chrome = 'HKLM:\SOFTWARE\Policies\Google\Chrome'
     edge   = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'
@@ -20,7 +20,7 @@ function Yonetici-Mi {
     ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-# Betigi yonetici olarak yeniden baslatir (UAC penceresi acar). $ek: betige iletilecek ek arguman metni.
+# Restarts the script as administrator (opens a UAC prompt). $ek: extra argument text for the script.
 function Yukselt($betik, $ek) {
     Write-Host 'Yonetici izni isteniyor, acilan UAC penceresini onayla...'
     Start-Process powershell.exe -Verb RunAs -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$betik`" $ek").Trim()
@@ -28,14 +28,14 @@ function Yukselt($betik, $ek) {
 
 function Say($t) { Write-Host "`n== $t ==" -ForegroundColor Cyan }
 
-# Paket kurulum programiyla dogrudan C:\Program Files\SlipDPI altina kurulduysa $true.
-# Depodan calistirilirken paket baska bir klasordedir ve motor dosyalari oraya kopyalanir.
+# $true if the package was installed by the setup program straight into C:\Program Files\SlipDPI.
+# When run from the repository the package is in another folder and the engine files are copied there.
 function Kurulu-Duzen($root) {
     [string]::Equals([IO.Path]::GetFullPath($root).TrimEnd('\'), [IO.Path]::GetFullPath($Hedef).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)
 }
 
-# 32 bit PowerShell icinde calisiyorsak (ornegin 32 bit bir kurulum programi baslattiysa) betigi 64 bit
-# PowerShell ile yeniden baslatir. 32 bit surecte Program Files ve kayit defteri baska yere gider.
+# If we are running inside 32-bit PowerShell (e.g. started by a 32-bit setup program), restarts the script
+# in 64-bit PowerShell. In a 32-bit process Program Files and the registry are redirected elsewhere.
 function AltmisDort-Bit($betik, $ek) {
     if ([Environment]::Is64BitProcess -or -not [Environment]::Is64BitOperatingSystem) { return }
     $ps = Join-Path $env:WINDIR 'Sysnative\WindowsPowerShell\v1.0\powershell.exe'
@@ -43,9 +43,9 @@ function AltmisDort-Bit($betik, $ek) {
     exit $p.ExitCode
 }
 
-# Klasik konsol penceresinin icine tiklaninca Windows "secim" moduna gecer (baslikta "Select" / "Sec"
-# gorunur) ve betik ekrana yazi yazmaya calistigi anda donar; Enter ya da Esc'e basilana kadar bekler.
-# Uzun suren betikler basta bunu cagirir: hizli duzenleme (QuickEdit) modunu bu pencere icin kapatir.
+# Clicking inside a classic console window puts Windows into "selection" mode (the title shows "Select" /
+# "Sec") and the script freezes the moment it tries to write to the screen, until Enter or Esc is pressed.
+# Long-running scripts call this first: it turns QuickEdit mode off for this window.
 function HizliDuzenleme-Kapat {
     try {
         if (-not ('DpiLite.Konsol' -as [type])) {
@@ -54,16 +54,16 @@ function HizliDuzenleme-Kapat {
         $h = [DpiLite.Konsol]::GetStdHandle(-10)                       # STD_INPUT_HANDLE
         [uint32]$mod = 0
         if ([DpiLite.Konsol]::GetConsoleMode($h, [ref]$mod)) {
-            # ENABLE_QUICK_EDIT_MODE (0x40) kapali, ENABLE_EXTENDED_FLAGS (0x80) acik
+            # ENABLE_QUICK_EDIT_MODE (0x40) off, ENABLE_EXTENDED_FLAGS (0x80) on
             [uint32]$yeni = ($mod -band [uint32]4294967231) -bor [uint32]128
             [void][DpiLite.Konsol]::SetConsoleMode($h, $yeni)
         }
     } catch { }
 }
 
-# Betik Dosya Gezgini'nden ("PowerShell ile calistir") acildiysa pencere is bitince hemen kapanir.
-# Yalnizca o durumda, cikti okunabilsin diye Enter bekler. Terminalden ya da baska bir betikten
-# calistirildiginda, cikti yonlendirildiginde ve -NoExit ile acildiginda beklemez.
+# When the script is opened from File Explorer ("Run with PowerShell") the window closes as soon as it ends.
+# Only in that case it waits for Enter so the output can be read. It does not wait when run from a terminal
+# or from another script, when output is redirected, or when started with -NoExit.
 function Kapanmadan-Bekle {
     try {
         if ([Console]::IsOutputRedirected -or [Console]::IsInputRedirected) { return }
@@ -76,14 +76,14 @@ function Kapanmadan-Bekle {
     } catch { }
 }
 
-# Makineye ozel dosyalar (secilen strateji, kayitlar, olcumler) burada durur; git'e girmez.
+# Machine-specific files (chosen strategy, logs, measurements) live here; they are not tracked by git.
 function Yerel-Klasor($root) {
-    $y = Join-Path $root 'yerel'
+    $y = Join-Path $root 'local'
     New-Item -ItemType Directory -Force $y | Out-Null
     $y
 }
 
-# Liste dosyasini okur: bos satirlar ve yorumlar (# ; /) atilir, hepsi kucuk harfe cevrilir.
+# Reads a list file: blank lines and comments (# ; /) are dropped, everything is lowercased.
 function Satirlar($path) {
     if (-not (Test-Path $path)) { return @() }
     @(Get-Content $path | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ -and $_ -notmatch '^[#;/]' })
@@ -102,9 +102,9 @@ function Tarayici-Kurulu($ad) {
     $false
 }
 
-# Bir politika kokune degerleri yazar. Baska bir kaynagin onceden koydugu degere dokunmaz.
-# $degerler : [ordered]@{ ad = deger }      $eski : onceki kurulumun bu kok icin tuttugu kayit (ya da $null)
-# Donus     : @{ kayit = <durum.json'a yazilacak kayit>; notlar = <uyari metinleri> }
+# Writes values under a policy root. Does not touch a value that another source has already set.
+# $degerler : [ordered]@{ name = value }    $eski : the previous install's record for this root (or $null)
+# Returns   : @{ kayit = <record to be written to state.json>; notlar = <warning texts> }
 function Politika-Uygula($kok, $degerler, $eski) {
     $yaratilan = @(); $bizim = @()
     if ($eski) { $yaratilan = @($eski.yaratilan | Where-Object { $_ }); $bizim = @($eski.degerler | Where-Object { $_ }) }
@@ -130,8 +130,8 @@ function Politika-Uygula($kok, $degerler, $eski) {
     [pscustomobject]@{ kayit = [pscustomobject]@{ kok = $kok; yaratilan = @($yaratilan); degerler = @($bizim) }; notlar = @($notlar) }
 }
 
-# Politika-Uygula'nin yazdiklarini geri alir: yalnizca bizim koydugumuz degerleri ve
-# bizim yaratip bos kalan anahtarlari siler.
+# Undoes what Politika-Uygula wrote: deletes only the values we set and
+# the keys we created that are now empty.
 function Politika-Kaldir($eski) {
     if (-not $eski -or -not $eski.kok) { return }
     foreach ($ad in @($eski.degerler | Where-Object { $_ })) {

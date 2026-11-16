@@ -16,7 +16,7 @@ git blob özetleriyle karşılaştırılarak doğrulandı.
 | `bin\cygwin1.dll` | [Cygwin](https://cygwin.com) | zapret paketindeki sürüm | `103104a52e5293ce418944725df19e2bf81ad9269b9a120d71d39028e821499b` |
 | `filters\windivert_part.*.txt` | zapret | aynı commit | metin dosyaları |
 
-Aynı özetler `bin\SHA256SUMS.txt` dosyasındadır; `kur.ps1` kurulumdan önce dosyaları bu listeyle karşılaştırır.
+Aynı özetler `bin\SHA256SUMS.txt` dosyasındadır; `install.ps1` kurulumdan önce dosyaları bu listeyle karşılaştırır.
 
 Git blob özetleri (GitHub'daki dosyayla karşılaştırmak için, `git hash-object <dosya>`):
 
@@ -27,10 +27,10 @@ Git blob özetleri (GitHub'daki dosyayla karşılaştırmak için, `git hash-obj
 
 ## Kurulum programı
 
-`SlipDPI-kurulum-<sürüm>.exe`, [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7.3 ile derlenir ve onun
+`SlipDPI-setup-<sürüm>.exe`, [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7.3 ile derlenir ve onun
 kurulum çalıştırıcısını içerir. Inno Setup kendi lisansıyla dağıtılır
-(<https://jrsoftware.org/files/is/license.txt>). Kurulum tanımı `kurulum\SlipDPI.iss` dosyasındadır;
-derleme `paketle.ps1` ile yapılır. Kurulum programı imzasızdır.
+(<https://jrsoftware.org/files/is/license.txt>). Kurulum tanımı `installer\SlipDPI.iss` dosyasındadır;
+derleme `package.ps1` ile yapılır. Kurulum programı imzasızdır.
 
 ## Bilinmesi gerekenler
 

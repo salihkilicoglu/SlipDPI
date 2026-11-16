@@ -1,12 +1,12 @@
-# SlipDPI : ac / kapat  (calisiyorsa durdurur, duruyorsa baslatir)
-# Kapaliyken makine kurulumdan onceki gibi davranir; kurulu dosyalar ve DNS kurali yerinde kalir.
-# Kullanim:  ac-kapat.ps1            -> durumu degistirir (yonetici izni ister)
-#            ac-kapat.ps1 -Durum     -> yalnizca durumu gosterir (yonetici gerekmez)
+# SlipDPI : on / off  (stops it if it is running, starts it if it is stopped)
+# While off, the machine behaves as it did before install; installed files and the DNS rule stay in place.
+# Usage:  toggle.ps1            -> toggles the state (asks for administrator rights)
+#         toggle.ps1 -Durum     -> only shows the state (no administrator needed)
 param([switch]$Durum)
 
-. (Join-Path $PSScriptRoot 'ortak.ps1')
+. (Join-Path $PSScriptRoot 'common.ps1')
 $svc = Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue
-if (-not $svc) { Write-Host 'SlipDPI kurulu degil. Once kur.ps1 calistir.'; Kapanmadan-Bekle; return }
+if (-not $svc) { Write-Host 'SlipDPI kurulu degil. Once install.ps1 calistir.'; Kapanmadan-Bekle; return }
 if ($Durum) { Write-Host "SlipDPI: $($svc.Status)   baslangic: $($svc.StartType)"; Kapanmadan-Bekle; return }
 
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }

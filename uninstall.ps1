@@ -1,21 +1,21 @@
-# SlipDPI : tamamen kaldirma
+# SlipDPI : full uninstall
 #
-# Geri aldiklari: SlipDPI servisi, WinDivert surucusu, DNS (NRPT) kurali, kurulum sirasinda
-# degistirildiyse DoH sunucu ayari, tarayici Guvenli DNS politikasi, otomatik liste ve durum dosyalari.
+# What it reverts: the SlipDPI service, the WinDivert driver, the DNS (NRPT) rule, the DoH server setting
+# if it was changed during install, the browser Secure DNS policy, the auto list and the state files.
 #
-# Depodan kurulduysa C:\Program Files\SlipDPI klasorunu de siler; depo klasorune dokunmaz.
-# Kurulum programiyla (setup.exe) kurulduysa program dosyalarini kaldirma programi siler; bu betigi
-# o cagirir (-Sessiz). Elle calistirildiysa program dosyalari icin Uygulamalar > SlipDPI > Kaldir kullanilir.
+# If installed from the repository it also deletes C:\Program Files\SlipDPI; the repository is not touched.
+# If installed with the setup program (setup.exe), the uninstaller deletes the program files and calls this
+# script (-Sessiz). If run by hand, use Apps > SlipDPI > Uninstall to remove the program files.
 param([switch]$Sessiz)
 
-. (Join-Path $PSScriptRoot 'ortak.ps1')
+. (Join-Path $PSScriptRoot 'common.ps1')
 AltmisDort-Bit $PSCommandPath $(if ($Sessiz) { '-Sessiz' } else { '' })
 if (-not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
 
-HizliDuzenleme-Kapat      # pencereye tiklaninca kaldirma donmasin
+HizliDuzenleme-Kapat      # so the uninstall does not freeze when the window is clicked
 $kuruluDuzen = Kurulu-Duzen $PSScriptRoot
-# Kurulu duzende yerel\ klasoru de silinecegi icin kayit gecici klasore yazilir.
-if ($kuruluDuzen) { $logYol = Join-Path $env:TEMP 'SlipDPI-kaldir.log' } else { $logYol = Join-Path (Yerel-Klasor $PSScriptRoot) 'kaldir.log' }
+# In the installed layout the local\ folder gets deleted too, so the log is written to the temp folder.
+if ($kuruluDuzen) { $logYol = Join-Path $env:TEMP 'SlipDPI-uninstall.log' } else { $logYol = Join-Path (Yerel-Klasor $PSScriptRoot) 'uninstall.log' }
 Start-Transcript -Path $logYol -Force | Out-Null
 $st = Durum-Oku
 
@@ -27,7 +27,7 @@ if (Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue) {
 Get-Process winws -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
 if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDivert') {
-    # Surucu durdurulunca kaydi cogu zaman kendiliginden silinir; "delete" o yuzden hata verebilir.
+    # Once the driver is stopped its registration usually removes itself, so "delete" may report an error.
     sc.exe stop windivert   | Out-Null
     sc.exe delete windivert | Out-Null
     Start-Sleep -Milliseconds 500
@@ -63,13 +63,13 @@ foreach ($e in $pol) { Politika-Kaldir $e; Write-Host "Geri alindi: $($e.kok)  (
 
 Say '5/5  Dosyalar'
 if ($kuruluDuzen) {
-    # Program dosyalarini kaldirma programi siler; burada yalnizca calisirken olusan dosyalar temizlenir.
+    # The uninstaller deletes the program files; only the files created at runtime are cleaned up here.
     foreach ($f in $AutoListe, $AutoKayit, $DurumYolu) { if (Test-Path $f) { Remove-Item $f -Force -ErrorAction SilentlyContinue } }
-    $y = Join-Path $Hedef 'yerel'; if (Test-Path $y) { Remove-Item $y -Recurse -Force -ErrorAction SilentlyContinue }
+    $y = Join-Path $Hedef 'local'; if (Test-Path $y) { Remove-Item $y -Recurse -Force -ErrorAction SilentlyContinue }
     Write-Host 'Otomatik liste, durum dosyasi ve yerel kayitlar silindi.'
 } elseif (Test-Path $Hedef) {
     Remove-Item $Hedef -Recurse -Force -ErrorAction SilentlyContinue
-    if (Test-Path $Hedef) { Start-Sleep -Seconds 2; Remove-Item $Hedef -Recurse -Force -ErrorAction SilentlyContinue }   # surucu dosyasi birkac saniye kilitli kalabilir
+    if (Test-Path $Hedef) { Start-Sleep -Seconds 2; Remove-Item $Hedef -Recurse -Force -ErrorAction SilentlyContinue }   # the driver file may stay locked for a few seconds
     if (Test-Path $Hedef) { Write-Host "Tam silinemedi (surucu dosyasi hala kilitli olabilir); yeniden baslattiktan sonra elle silinebilir: $Hedef" -ForegroundColor Yellow }
     else { Write-Host "Silindi: $Hedef" }
 } else { Write-Host 'Klasor yok.' }

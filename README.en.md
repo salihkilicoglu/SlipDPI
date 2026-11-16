@@ -2,81 +2,59 @@
 
 **Lightweight DPI bypass for Windows** · [Türkçe](README.md)
 
-A small Windows program that gets past hostname-based (SNI) blocking in Türkiye without a VPN. Traffic
-goes straight to its destination: speed and ping stay the same, and so does your IP address. Game traffic
-is never touched and ping in games does not go up.
+A small Windows program that gets past hostname-based (SNI) blocking in Türkiye without a VPN. Install it
+once and it takes care of the rest: it runs in the background as a service and starts by itself every
+time the computer starts. Speed and ping stay the same, and game traffic is never touched.
 
 ![SlipDPI control window](docs/panel.png)
 
 *The sites in the screenshot are sample data. The window and the installer are in Turkish.*
 
-## Why "lightweight"
+## Why SlipDPI
 
-SlipDPI does little on purpose:
-
+- **Install and forget.** A single installer; during setup it tests your line and picks its own setting.
+  After that there is nothing to open, start or keep running.
+- **In the background, on every startup.** It runs as a Windows service and starts by itself when the
+  computer starts. Nothing sits in the system tray and no window has to stay open.
+- **Speed and ping stay the same.** No tunnel, VPN or proxy; traffic goes straight to its destination
+  and your IP address does not change. Game traffic does not pass through the program, so ping in games
+  does not go up.
 - **It touches only what it has to.** Not all traffic: only the opening of connections to domains on its
   list. Everything else passes through unchanged.
-- **No tunnel, VPN or proxy.** Traffic is not routed through another server or through a relay program
-  on your computer, which is why speed and ping do not change.
-- **One setting.** It does not ask you to pick from dozens of presets. The installer tests your line and
-  picks the simplest setting that works.
-- **One small background service.** Nothing sits in the system tray; the control window runs only while
-  it is open. The service uses about 8 MB of memory.
-- **Small install.** The installer is about 3 MB. It does not change the system-wide DNS setting, and
-  uninstalling leaves nothing behind.
-
-There are things it does not do in return: it does not hide your IP address, does not encrypt traffic,
-and does not get past blocks based on IP address. Those need a VPN.
-
-## What it touches and what it does not
-
-The program works by domain name, not by application, and changes only connections to the domains on
-its list.
-
-| Traffic | What happens |
-|---|---|
-| Game server connections, in-game voice chat, every port other than 443 | Never reaches the program |
-| HTTPS connections to sites and services not on the list (browser, game launchers, updates) | Looked at, passed through unchanged |
-| Connections to listed domains, and the first packet of a Discord voice connection | Changed so the block is bypassed |
-
-The list has three parts: the Discord domains that ship with the program, the sites you add, and the
-blocked sites the program learns by itself. If a game or any other program connects to a listed domain,
-that connection is handled too; which program opened it makes no difference.
-
-The change is made only when a connection opens; download data is not touched.
-
-**Ping in games does not go up.** Game traffic does not pass through the program and is not redirected
-to a server or tunnel; packets take the same path they take without it.
-
-## Requirements
-
-- Windows 11, 64-bit. On Windows 10 the browser works, but apps such as Discord may not.
-- Administrator rights.
-- No other DPI tool running (GoodbyeDPI, zapret, ByeDPI, SplitWire).
-- Some antivirus products (e.g. Kaspersky) block the WinDivert driver the program uses.
+- **It learns new blocked sites by itself.** If a site that is not on the list gets blocked, refreshing
+  the page a few times is enough; the program adds it to its list.
+- **Discord works out of the box.** Discord text and voice work right after installation.
+- **Lightweight.** The installer is about 3 MB and the service uses about 8 MB of memory. It does not
+  change the system-wide DNS setting.
+- **One-click uninstall.** Uninstalling removes the service, the driver and every setting it made;
+  nothing is left behind.
 
 ## Installation
 
-1. Download `SlipDPI-kurulum-<version>.exe` from the [Releases](../../releases) page and run it.
+**Requirements:** Windows 11 (64-bit) and administrator rights. If another DPI tool is running
+(GoodbyeDPI, zapret, ByeDPI, SplitWire), close it first.
+
+1. Download `SlipDPI-setup-<version>.exe` from the [Releases](../../releases) page and run it.
 2. If Windows shows "Windows protected your PC", choose "More info" → "Run anyway". The installer is not
    signed; you can compare the file with `SHA256SUMS.txt` on the same page.
-3. Choose whether you want a Start menu and a desktop shortcut.
-4. A console window opens and does the setup. On first install it tests your line and picks a setting;
-   this takes 2-3 minutes and blocked sites are unreachable meanwhile. At the end it checks itself and
-   prints the result.
+3. Choose whether you want a Start menu and a desktop shortcut, then press "Kur" (Install).
+4. A console window opens and does the rest: it tests your line, picks a setting, installs the service
+   and checks that it works. On first install this takes 2-3 minutes and blocked sites are unreachable
+   meanwhile.
 
-No restart is needed. The program starts by itself when Windows starts.
+That is all. No restart is needed; blocked sites and Discord open.
 
-Instead of the installer you can extract `SlipDPI-<version>.zip` to a folder and double-click `kur.cmd`.
+Instead of the installer you can extract `SlipDPI-<version>.zip` to a folder and double-click
+`install.cmd`.
 
 **What it installs:** a service named `SlipDPI` and the WinDivert driver, the folder
-`C:\Program Files\SlipDPI`, a DNS rule for the listed domains, and the Secure DNS setting in Chrome. It
-does not change the system-wide DNS setting.
+`C:\Program Files\SlipDPI`, a DNS rule for the listed domains, and the Secure DNS setting in Chrome.
 
 ## Usage
 
-The "SlipDPI" shortcut (or `C:\Program Files\SlipDPI\panel.cmd` if you chose no shortcut) opens the
-control window. The window runs only while it is open; the program keeps working after you close it.
+In everyday use there is nothing to do. When you want to see the status or change something, the
+"SlipDPI" shortcut (or `C:\Program Files\SlipDPI\panel.cmd` if you chose no shortcut) opens the control
+window. Closing the window does not stop the program.
 
 - **Durdur / Başlat** (Stop / Start): turns the program off or on. While stopped it does not start with
   Windows either.
@@ -101,6 +79,23 @@ enough, and it stays from then on. If that does not work, add it yourself with "
 Sites the program learned are shown on the "Otomatik eklenenler" tab. That list is stored on your
 computer as plain text and contains the names of the blocked sites you opened.
 
+## What it touches and what it does not
+
+The program works by domain name, not by application, and changes only connections to the domains on
+its list.
+
+| Traffic | What happens |
+|---|---|
+| Game server connections, in-game voice chat, every port other than 443 | Never reaches the program |
+| HTTPS connections to sites and services not on the list (browser, game launchers, updates) | Looked at, passed through unchanged |
+| Connections to listed domains, and the first packet of a Discord voice connection | Changed so the block is bypassed |
+
+The list has three parts: the Discord domains that ship with the program, the sites you add, and the
+blocked sites the program learns by itself. If a game or any other program connects to a listed domain,
+that connection is handled too; which program opened it makes no difference.
+
+The change is made only when a connection opens; download data is not touched.
+
 ## Troubleshooting
 
 - **A new blocked site does not open:** refresh the page two or three times; if that fails, add it from
@@ -110,16 +105,16 @@ computer as plain text and contains the names of the blocked sites you opened.
 - **A site that used to work broke:** if it is on the "Otomatik eklenenler" tab, use "Çıkar ve hariç tut".
 - **A site you removed still opens:** if the site is blocked, the program learns it again. Use
   "Çıkar ve hariç tut" if you never want it handled.
-- **Setup ended with an error:** try again with "Onar". If the service does not start, an antivirus may
-  be blocking the WinDivert driver.
+- **Setup ended with an error:** try again with "Onar". If the service does not start, an antivirus
+  (e.g. Kaspersky) may be blocking the WinDivert driver the program uses.
 - **Discord is stuck on "Starting...":** quit Discord completely from the system tray and open it again.
 - **Something broke and you do not know why:** press "Durdur" in the window. If the problem continues,
   this program is not the cause.
 
 ## Uninstalling
 
-Settings → Apps → SlipDPI → Uninstall, or "Kaldır" in the control window. If you installed from the zip,
-run `kaldir.cmd`. The service, driver, DNS rule, Chrome setting, shortcuts and lists are removed; the
+"Kaldır" in the control window, or Settings → Apps → SlipDPI → Uninstall. If you installed from the zip,
+run `uninstall.cmd`. The service, driver, DNS rule, Chrome setting, shortcuts and lists are removed; the
 system returns to how it was before installation.
 
 ## Secure DNS in Chrome
@@ -130,7 +125,7 @@ turns on "Use secure DNS" in Chrome (provider: Google) by itself; you do not nee
 This has two visible effects: Chrome's menu says "Your browser is managed by your organization", and
 "Use secure DNS" in settings appears on and locked. Both go away when the program is uninstalled.
 
-![Secure DNS setting in Chrome](docs/chrome-guvenli-dns.png)
+![Secure DNS setting in Chrome](docs/chrome-secure-dns.png)
 
 If you use another browser, turn the same setting on by hand and choose Google as the provider:
 
@@ -139,18 +134,19 @@ If you use another browser, turn the same setting on by hand and choose Google a
 
 ## Good to know
 
-- Tested only on a Türk Telekom line. The setup test is written to pick its own setting on any line, but
-  it has not been verified on Superonline, Vodafone, TurkNet, Kablonet or mobile connections.
-- On the tested line, ping, page load time, download speed and upload speed measured the same with the
-  program on and off.
+- **It is not a VPN.** It does not hide your IP address, does not encrypt traffic, and does not get past
+  blocks based on IP address.
+- **Tested only on a Türk Telekom line.** The setup test is written to pick its own setting on any line,
+  but it has not been verified on Superonline, Vodafone, TurkNet, Kablonet or mobile connections.
+- **Measurements come from that one line.** There, ping, page load time, download speed and upload speed
+  measured the same with the program on and off.
+- **On Windows 10** the browser works, but apps such as Discord may not.
 - If the provider changes how it blocks, the chosen setting may stop working; "Yeniden test et" looks
   for a new one.
-- It is not a VPN: it does not hide your IP address, does not encrypt traffic, and does not get past
-  blocks based on IP address.
 - You use this program at your own responsibility.
 
 ## License
 
 The program's own scripts are under the [MIT license](LICENSE). The bundled
 [zapret](https://github.com/bol-van/zapret) engine, WinDivert and Cygwin files are under their own
-licenses; details are in [UCUNCU-TARAF.md](UCUNCU-TARAF.md) (Turkish).
+licenses; details are in [THIRD-PARTY.md](THIRD-PARTY.md) (Turkish).

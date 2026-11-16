@@ -1,6 +1,6 @@
-# Makineye ozel dosyalar: secilen strateji, kayitlar, olcumler
-yerel/
+# Machine-specific files: chosen strategy, logs, measurements
+local/
 *.log
 
-# paketle.ps1 ciktilari (zip ve kurulum programi GitHub Release olarak yayinlanir, depoya girmez)
-cikti/
+# package.ps1 output (the zip and installer are published as a GitHub Release, not committed)
+dist/

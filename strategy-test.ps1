@@ -1,17 +1,17 @@
-# SlipDPI : strateji testi ve secimi
+# SlipDPI : strategy test and selection
 #
-# Ne yapar: winws motorunu sirayla farkli ayarlarla GECICI olarak calistirir, her birinde engelli
-# adreslere (Discord, Roblox, Wattpad) ve engelsiz kontrol adreslerine baglanmayi dener, bu hatta
-# calisan ayari secer ve yerel\strateji.json dosyasina yazar. kur.ps1 o dosyayi kullanir.
+# What it does: runs the winws engine TEMPORARILY with one set of settings after another, each time
+# trying to reach blocked addresses (Discord, Roblox, Wattpad) and unblocked control addresses, picks
+# the setting that works on this line and writes it to local\strategy.json. install.ps1 uses that file.
 #
-# Kalici hicbir sey kurmaz. SlipDPI servisi calisiyorsa test suresince durdurur, sonunda geri baslatir.
-# Bitince test motorunu durdurur ve WinDivert surucusunu bellekten kaldirir.
+# Installs nothing permanent. If the SlipDPI service is running, stops it for the test and restarts it after.
+# When done, stops the test engine and unloads the WinDivert driver from memory.
 #
-# Tek basina:  strateji-test.ps1          (yonetici izni ister)
-# kur.ps1 icinden cagrilirken -Icerden kullanilir (yukseltme ve kayit dosyasi kur.ps1'e aittir).
+# Standalone:  strategy-test.ps1          (asks for administrator rights)
+# When called from install.ps1, -Icerden is used (elevation and the log file belong to install.ps1).
 param([switch]$Icerden)
 
-. (Join-Path $PSScriptRoot 'ortak.ps1')
+. (Join-Path $PSScriptRoot 'common.ps1')
 if (-not $Icerden -and -not (Yonetici-Mi)) { Yukselt $PSCommandPath ''; return }
 
 $root   = $PSScriptRoot
@@ -20,14 +20,14 @@ $bin    = Join-Path $root 'bin'
 $winws  = Join-Path $bin  'winws.exe'
 $logDir = Join-Path $yerel 'test-log'
 New-Item -ItemType Directory -Force $logDir | Out-Null
-if (-not $Icerden) { HizliDuzenleme-Kapat; Start-Transcript -Path (Join-Path $yerel 'strateji-test.log') -Force | Out-Null }
+if (-not $Icerden) { HizliDuzenleme-Kapat; Start-Transcript -Path (Join-Path $yerel 'strategy-test.log') -Force | Out-Null }
 
 function Bitir($msg) {
     if ($msg) { Write-Host $msg -ForegroundColor Yellow }
     if (-not $Icerden) { Stop-Transcript | Out-Null }
 }
 
-# --- hedefler: Turkiye'de engelli oldugu bilinen adlar. IP'ler basta DoH ile tazelenir. ----------
+# --- targets: names known to be blocked in Turkey. IPs are refreshed via DoH at start. -----------
 $targets = @(
     @{ name = 'discord.com';         url = 'https://discord.com/api/v9/gateway'; ip = '162.159.138.232' },
     @{ name = 'gateway.discord.gg';  url = 'https://gateway.discord.gg/';        ip = '162.159.133.234' },
@@ -37,7 +37,7 @@ $targets = @(
     @{ name = 'wattpad.com';         url = 'https://wattpad.com/';               ip = '13.224.106.74' }
 )
 $controls = @('https://www.google.com/generate_204', 'https://github.com/', 'https://www.cloudflare.com/cdn-cgi/trace')
-# Test motoru yalnizca bu adlara dokunur (kullanicinin liste dosyalarindan bagimsiz):
+# The test engine touches only these names (independent of the user's list files):
 $testListe = '--hostlist-domains=discord.com,discord.gg,discordapp.com,roblox.com,wattpad.com'
 
 function Probe($url, $name, $ip) {
@@ -55,7 +55,7 @@ function RunProbes {
         foreach ($t in $targets) { $res[$t.name] += Probe $t.url $t.name $t.ip }
         if ($try -eq 1) {
             $any = @($res.Values | ForEach-Object { $_ } | Where-Object { $_.ok }).Count
-            if ($any -eq 0) { break }      # hicbiri gecmediyse ayni seyi 3 kez denemeye gerek yok
+            if ($any -eq 0) { break }      # if none got through, no need to try the same thing 3 times
         }
     }
     $ctl = [ordered]@{}
@@ -74,11 +74,11 @@ function Summarize($r) {
     [pscustomobject]@{ ok = $ok; n = $n; text = ($parts -join ', '); controlsOk = $cok; controlsN = $r.controls.Count }
 }
 
-# Test sonuclarindan bu hat icin strateji secer.
-#  1) TTL'li sahte paket: sunucuya hic ulasmadigi icin en guvenlisi. Gecen en dusuk TTL, denetim
-#     kutusunun uzakligidir; bir fazlasi da geciyorsa o secilir (kutu bir atlama uzaklasirsa pay kalsin).
-#  2) TTL'siz yontemler, tercih sirasiyla. Bunlarda sahte paket sunucuya ulasir ve sunucunun onu
-#     atmasina guvenilir; bu yuzden QUIC ve ses kurallari eklenmez (ttl = 0).
+# Picks a strategy for this line from the test results.
+#  1) Fake packet with a TTL: the safest, since it never reaches the server. The lowest passing TTL is
+#     the distance to the inspection box; if TTL+1 also passes it is chosen (margin if the box moves a hop).
+#  2) Methods without a TTL, in order of preference. Here the fake packet reaches the server and we rely
+#     on the server dropping it; that is why no QUIC or voice rules are added (ttl = 0).
 function Sec-Strateji($report) {
     $tam = @($report | Where-Object { $_.started -and $_.n -gt 0 -and $_.ok -eq $_.n -and $_.controlsOk -eq $_.controlsN })
     $ttl = @($tam | ForEach-Object { if ($_.name -match '^fake_ttl(\d+)$') { [int]$Matches[1] } } | Sort-Object)
@@ -94,7 +94,7 @@ function Sec-Strateji($report) {
     return $null
 }
 
-# --- adaylar ------------------------------------------------------------------------------------
+# --- candidates ---------------------------------------------------------------------------------
 $candidates = @()
 foreach ($t in 1..8) { $candidates += @{ name = "fake_ttl$t"; args = "--dpi-desync=fake --dpi-desync-ttl=$t" } }
 $candidates += @{ name = 'fake_md5sig';        args = '--dpi-desync=fake --dpi-desync-fooling=md5sig' }
@@ -103,7 +103,7 @@ $candidates += @{ name = 'fake_mdisorder_md5'; args = '--dpi-desync=fake,multidi
 $candidates += @{ name = 'fakedsplit_md5';     args = '--dpi-desync=fakedsplit --dpi-desync-split-pos=midsld --dpi-desync-fooling=md5sig' }
 $candidates += @{ name = 'fake_badseq';        args = '--dpi-desync=fake --dpi-desync-fooling=badseq' }
 
-# --- on kosullar --------------------------------------------------------------------------------
+# --- preconditions ------------------------------------------------------------------------------
 $servisCalisiyordu = $false
 if (-not $Icerden) {
     $svc = Get-Service -Name $ServisAdi -ErrorAction SilentlyContinue
@@ -169,10 +169,10 @@ finally {
     if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
     Get-Process winws -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Milliseconds 500
-    # WinDivert surucusunu bellekten kaldir (upstream windivert_delete.cmd ile ayni iki komut)
+    # Unload the WinDivert driver from memory (the same two commands as upstream windivert_delete.cmd)
     sc.exe stop windivert   | Out-Null
     sc.exe delete windivert | Out-Null
-    $report | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $yerel 'strateji-test.json') -Encoding UTF8
+    $report | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $yerel 'strategy-test.json') -Encoding UTF8
 }
 
 Say 'OZET'
@@ -185,8 +185,8 @@ $adaylar = @($report | Where-Object { $_.name -ne 'baseline_off' })
 $secim = Sec-Strateji $adaylar
 if ($secim) {
     $secim['secildi'] = (Get-Date).ToString('s')
-    $secim['kaynak']  = 'strateji-test'
-    [pscustomobject]$secim | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $yerel 'strateji.json') -Encoding UTF8
+    $secim['kaynak']  = 'strategy-test'
+    [pscustomobject]$secim | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $yerel 'strategy.json') -Encoding UTF8
     Write-Host ("`nSecilen strateji: {0}   ({1})" -f $secim.ad, $secim.tcp) -ForegroundColor Green
     if ($secim.ttl -gt 0) { Write-Host ("Gecen TTL degerleri: {0}. Denetim kutusu yaklasik {1}. atlamada." -f ($secim.gecenTtl -join ', '), $secim.gecenTtl[0]) }
 } else {
@@ -195,7 +195,7 @@ if ($secim) {
 
 if ($servisCalisiyordu) {
     Start-Service -Name $ServisAdi -ErrorAction SilentlyContinue
-    Write-Host 'SlipDPI servisi eski ayariyla geri baslatildi. Yeni secimi uygulamak icin kur.ps1 calistir.'
+    Write-Host 'SlipDPI servisi eski ayariyla geri baslatildi. Yeni secimi uygulamak icin install.ps1 calistir.'
 }
 if (-not $Icerden) {
     $net = Test-Connection 1.1.1.1 -Count 2 -Quiet

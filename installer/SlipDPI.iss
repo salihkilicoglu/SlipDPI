@@ -38,17 +38,35 @@ OutputBaseFilename=SlipDPI-setup-{#AppVer}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-InfoBeforeFile=info.txt
 SetupIconFile={#SourceDir}\SlipDPI.ico
 UninstallDisplayIcon={app}\SlipDPI.ico
 UninstallDisplayName=SlipDPI
 CloseApplications=no
 RestartApplications=no
 VersionInfoVersion={#AppVer}
-VersionInfoDescription=SlipDPI kurulum
+VersionInfoDescription=SlipDPI Setup
 
 [Languages]
-Name: "tr"; MessagesFile: "compiler:Languages\Turkish.isl"
+; The setup asks for the language first; the choice is written to lang.txt and used by the scripts and
+; the control window. The Windows display language is preselected.
+Name: "en"; MessagesFile: "compiler:Default.isl";           InfoBeforeFile: "info.en.txt"
+Name: "tr"; MessagesFile: "compiler:Languages\Turkish.isl"; InfoBeforeFile: "info.tr.txt"
+
+[CustomMessages]
+en.ShortcutsGroup=Shortcuts:
+tr.ShortcutsGroup=Kısayollar:
+en.TaskStartMenu=Add a Start menu shortcut
+tr.TaskStartMenu=Başlat menüsüne kısayol ekle
+en.TaskDesktop=Add a desktop shortcut
+tr.TaskDesktop=Masaüstüne kısayol ekle
+en.OpenPanel=Open the SlipDPI control window
+tr.OpenPanel=SlipDPI kontrol penceresini aç
+en.StatusInstalling=Testing the line and installing the service (may take 2-3 minutes). Do not close the window that opens...
+tr.StatusInstalling=Hat test ediliyor ve servis kuruluyor (2-3 dakika sürebilir). Açılan pencereyi kapatmayın...
+en.ScriptNotStarted=The setup script could not be started: %1
+tr.ScriptNotStarted=Kurulum betiği başlatılamadı: %1
+en.SetupIncomplete=The setup steps did not complete (code %1).%n%nDetails: %2%nYou can try again with the "Repair" button in the SlipDPI window.
+tr.SetupIncomplete=Kurulum adımları tam tamamlanamadı (kod %1).%n%nAyrıntı: %2%nSlipDPI penceresindeki "Onar" düğmesiyle tekrar denenebilir.
 
 [Files]
 Source: "{#SourceDir}\bin\*";              DestDir: "{app}\bin";      Flags: ignoreversion
@@ -57,6 +75,7 @@ Source: "{#SourceDir}\lists\discord.txt";  DestDir: "{app}\lists";    Flags: ign
 ; The user's own lists: kept when installing over an existing copy
 Source: "{#SourceDir}\lists\sites.txt";  DestDir: "{app}\lists";    Flags: onlyifdoesntexist
 Source: "{#SourceDir}\lists\exclude.txt";    DestDir: "{app}\lists";    Flags: onlyifdoesntexist
+Source: "{#SourceDir}\lang\*.psd1";      DestDir: "{app}\lang";     Flags: ignoreversion
 Source: "{#SourceDir}\licenses\*";         DestDir: "{app}\licenses"; Flags: ignoreversion
 Source: "{#SourceDir}\*.ps1";              DestDir: "{app}";          Flags: ignoreversion
 Source: "{#SourceDir}\*.cmd";              DestDir: "{app}";          Flags: ignoreversion
@@ -69,8 +88,8 @@ Source: "{#SourceDir}\LICENSE";            DestDir: "{app}";          Flags: ign
 ; The wizard's "Additional tasks" page asks for the two shortcuts separately.
 ; A silent install uses the defaults; to change them: /TASKS="startmenu,desktop"
 [Tasks]
-Name: "startmenu"; Description: "Başlat menüsüne kısayol ekle"; GroupDescription: "Kısayollar:"
-Name: "desktop";      Description: "Masaüstüne kısayol ekle";      GroupDescription: "Kısayollar:"; Flags: unchecked
+Name: "startmenu"; Description: "{cm:TaskStartMenu}"; GroupDescription: "{cm:ShortcutsGroup}"
+Name: "desktop";      Description: "{cm:TaskDesktop}";   GroupDescription: "{cm:ShortcutsGroup}"; Flags: unchecked
 
 [Icons]
 ; Control window: status, stop/start, add/remove site, re-test, repair and uninstall all live here.
@@ -79,7 +98,7 @@ Name: "{autoprograms}\SlipDPI";      Filename: "{sys}\WindowsPowerShell\v1.0\pow
 Name: "{autodesktop}\SlipDPI";       Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\SlipDPI.ico"; Flags: runminimized; Tasks: desktop
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; Description: "SlipDPI kontrol penceresini aç"; Flags: postinstall nowait skipifsilent runasoriginaluser runminimized
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\panel.ps1"""; WorkingDir: "{app}"; Description: "{cm:OpenPanel}"; Flags: postinstall nowait skipifsilent runasoriginaluser runminimized
 
 ; When installing over an existing copy, delete the previous shortcuts; only the ones chosen now are recreated.
 [InstallDelete]
@@ -89,6 +108,10 @@ Type: files;          Name: "{autodesktop}\SlipDPI.lnk"
 
 [UninstallRun]
 Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\uninstall.ps1"" -Silent"; Flags: waituntilterminated; RunOnceId: "slipdpi-uninstall"
+
+[Registry]
+; The language chosen in the control window; removed on uninstall.
+Root: HKCU; Subkey: "Software\SlipDPI"; Flags: dontcreatekey uninsdeletekey
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
@@ -117,14 +140,16 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    WizardForm.StatusLabel.Caption := 'Hat test ediliyor ve servis kuruluyor (2-3 dakika sürebilir). Açılan pencereyi kapatmayın...';
+    WizardForm.StatusLabel.Caption := CustomMessage('StatusInstalling');
+    // The language chosen in the wizard becomes the program's language; a choice made earlier in the
+    // control window (HKCU) is cleared so the new one takes effect.
+    SaveStringToFile(ExpandConstant('{app}\lang.txt'), ActiveLanguage, False);
+    RegDeleteValue(HKEY_CURRENT_USER, 'Software\SlipDPI', 'Language');
     ps := ExpandConstant('{sysnative}\WindowsPowerShell\v1.0\powershell.exe');
     script := ExpandConstant('{app}\install.ps1');
     if not Exec(ps, '-NoProfile -ExecutionPolicy Bypass -File "' + script + '" -FromSetup', ExpandConstant('{app}'), SW_SHOWNORMAL, ewWaitUntilTerminated, rc) then
-      MsgBox('Kurulum betiği başlatılamadı: ' + script, mbError, MB_OK)
+      MsgBox(FmtMessage(CustomMessage('ScriptNotStarted'), [script]), mbError, MB_OK)
     else if rc <> 0 then
-      MsgBox('Kurulum adımları tam tamamlanamadı (kod ' + IntToStr(rc) + ').' + #13#10 + #13#10 +
-             'Ayrıntı: ' + ExpandConstant('{app}\local\install.log') + #13#10 +
-             'SlipDPI penceresindeki "Onar" düğmesiyle tekrar denenebilir.', mbError, MB_OK);
+      MsgBox(FmtMessage(CustomMessage('SetupIncomplete'), [IntToStr(rc), ExpandConstant('{app}\local\install.log')]), mbError, MB_OK);
   end;
 end;

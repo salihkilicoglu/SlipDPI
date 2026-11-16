@@ -34,7 +34,7 @@ function Get-Status {
         Installed    = [bool]$svc
         Running = [bool]($svc -and $svc.Status -eq 'Running')
         AutoStart  = [bool]($svc -and "$($svc.StartType)" -eq 'Automatic')
-        Strategy  = ''; Ttl = 0; DnsLevel = 0; DnsServers = ''; İnstalledAt = ''
+        Strategy  = ''; Ttl = 0; DnsLevel = 0; DnsServers = ''; InstalledAt = ''
         Manual      = @(Get-Lines $ManualPath)
         Auto       = @(Get-Lines $AutoList)
         Excluded     = @(Get-Lines $ExcludePath)
@@ -44,12 +44,12 @@ function Get-Status {
         $d.Strategy = "$($st.strategy)"; if ($st.ttl) { $d.Ttl = [int]$st.ttl }
         if ($st.dnsLevel) { $d.DnsLevel = [int]$st.dnsLevel }
         $d.DnsServers = (@($st.dnsServers) -join ', ')
-        try { $d.İnstalledAt = ([datetime]$st.installedAt).ToString('dd.MM.yyyy HH:mm') } catch { $d.İnstalledAt = "$($st.installedAt)" }
+        try { $d.InstalledAt = ([datetime]$st.installedAt).ToString('dd.MM.yyyy HH:mm') } catch { $d.InstalledAt = "$($st.installedAt)" }
     }
     if ($Screenshot) {      # no real list contents in the image; status is sample too (drawn even when not installed)
         $d.Installed = $true; $d.Running = $true; $d.AutoStart = $true
         $d.Strategy = 'fake_ttl4'; $d.Ttl = 4; $d.DnsLevel = 2; $d.DnsServers = '8.8.8.8, 8.8.4.4'
-        $d.İnstalledAt = (Get-Date).ToString('dd.MM.yyyy HH:mm')
+        $d.InstalledAt = (Get-Date).ToString('dd.MM.yyyy HH:mm')
         $d.Manual = @('ornek-site.com'); $d.Auto = @('ornek-video.com', 'cdn.ornek-video.com', 'ornek-forum.net'); $d.Excluded = @('ornek-banka.com.tr')
     }
     [pscustomobject]$d
@@ -80,6 +80,21 @@ $lblTitle.Font = New-Object Drawing.Font('Segoe UI Semibold', 15)
 $lblSubtitle = New-Control 'Label' 'lightweight DPI bypass for Windows' 112 21 300 18
 $lblSubtitle.ForeColor = $Gray
 
+# Language switch: a link showing the other language. The choice is stored per user (HKCU) and the
+# window restarts itself to apply it; scripts started afterwards use the same language.
+$otherLang = if ($Lang -eq 'tr') { 'en' } else { 'tr' }
+$panelPath = $PSCommandPath
+$lnkLang = New-Control 'LinkLabel' $Languages[$otherLang] 444 18 100 18
+$lnkLang.TextAlign = 'MiddleRight'
+$lnkLang.Add_LinkClicked({
+    try {
+        if (-not (Test-Path $LangKey)) { New-Item -Path $LangKey -Force | Out-Null }
+        Set-ItemProperty -Path $LangKey -Name Language -Value $otherLang -Type String
+        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$panelPath`"" -WindowStyle Hidden
+        $form.Close()
+    } catch { }
+})
+
 $lblDot = New-Control 'Label' ([string][char]0x25CF) 17 46 20 22
 $lblDot.Font = New-Object Drawing.Font('Segoe UI Symbol', 11)
 $lblStatus = New-Control 'Label' '' 38 48 370 20
@@ -87,17 +102,17 @@ $lblStatus.Font = New-Object Drawing.Font('Segoe UI Semibold', 9.5)
 $lblInfo = New-Control 'Label' '' 18 72 400 36
 $lblInfo.ForeColor = $Gray
 
-$btnToggle = New-Control 'Button' 'Durdur' 430 40 114 32
+$btnToggle = New-Control 'Button' (T 'Stop') 430 40 114 32
 
-$grpAdd = New-Control 'GroupBox' 'Engelli site ekle  (örnek: ornek.com)' 16 116 528 62
+$grpAdd = New-Control 'GroupBox' (T 'Add a blocked site  (example: example.com)') 16 116 528 62
 $txtSite = New-Control 'TextBox' '' 12 25 380 23
-$btnAdd = New-Control 'Button' 'Ekle' 402 23 112 27
+$btnAdd = New-Control 'Button' (T 'Add') 402 23 112 27
 $grpAdd.Controls.AddRange(@($txtSite, $btnAdd))
 
 $tabs = New-Control 'TabControl' '' 16 190 528 312
 function New-ListTab($title, $buttonText, $description) {
     $tp = New-Object Windows.Forms.TabPage
-    $tp.Text = $title
+    $tp.Text = $title -f 0      # $title is a format with a {0} for the entry count
     $tp.BackColor = [Drawing.Color]::White
     $lb = New-Control 'ListBox' '' 8 8 392 230
     $lb.IntegralHeight = $false
@@ -109,32 +124,32 @@ function New-ListTab($title, $buttonText, $description) {
     $tabs.TabPages.Add($tp)
     [pscustomobject]@{ Page = $tp; List = $lb; Button = $bt; Description = $lbl; Title = $title }
 }
-$tabDiscord = New-ListTab 'Discord'           ''                   'Discord''un alan adları kurulumla birlikte gelir ve her zaman işlenir; alt adları da kapsanır. Bu liste buradan değiştirilmez.'
-$tabManual  = New-ListTab 'Elle eklenenler'     'Çıkar'              'Kendi eklediğin siteler. Üst alan adını eklemek bütün alt adlarını da kapsar (ornek.com, www.ornek.com, cdn.ornek.com).'
-$tabAuto   = New-ListTab 'Otomatik eklenenler' "Çıkar ve`nhariç tut" 'Bir site 60 saniye içinde üç kez açılışta kesilirse motor onu buraya kendisi ekler. Yanlış girdiyse çıkarıp hariç tutabilirsin.'
-$tabExcluded = New-ListTab 'Hariç tutulanlar'    'Geri al'            'Buradaki sitelere hiç dokunulmaz ve otomatik eklenmezler.'
+$tabDiscord = New-ListTab 'Discord ({0})'               ''                   (T 'The Discord domains come with the install and are always handled, subdomains included. This list cannot be changed from here.')
+$tabManual  = New-ListTab (T 'Added manually ({0})')      (T 'Remove')         (T 'Sites you added yourself. Adding the parent domain covers all its subdomains too (example.com, www.example.com, cdn.example.com).')
+$tabAuto   = New-ListTab (T 'Added automatically ({0})') ((T 'Remove and') + "`n" + (T 'exclude')) (T 'If a site is cut off on connect three times within 60 seconds, the engine adds it here itself. Remove and exclude it if that was wrong.')
+$tabExcluded = New-ListTab (T 'Excluded ({0})')            (T 'Undo')           (T 'Sites listed here are never touched and are never added automatically.')
 
-$btnTest   = New-Control 'Button' 'Yeniden test et' 16 514 126 30
-$btnRepair   = New-Control 'Button' 'Onar'            150 514 86 30
-$btnLog  = New-Control 'Button' 'Kurulum kaydı'   244 514 112 30
-$btnGuide = New-Control 'Button' 'Kılavuz'        364 514 86 30
-$btnUninstall = New-Control 'Button' 'Kaldır'          458 514 86 30
-$lblTask = New-Control 'Label' 'Hazır.' 18 556 526 20
+$btnTest   = New-Control 'Button' (T 'Test again') 16 514 126 30
+$btnRepair   = New-Control 'Button' (T 'Repair')     150 514 86 30
+$btnLog  = New-Control 'Button' (T 'Setup log')  244 514 112 30
+$btnGuide = New-Control 'Button' (T 'Guide')      364 514 86 30
+$btnUninstall = New-Control 'Button' (T 'Uninstall')  458 514 86 30
+$lblTask = New-Control 'Label' (T 'Ready.') 18 556 526 20
 $lblTask.ForeColor = $Gray
 
-$form.Controls.AddRange(@($lblTitle, $lblSubtitle, $lblDot, $lblStatus, $lblInfo, $btnToggle, $grpAdd, $tabs, $btnTest, $btnRepair, $btnLog, $btnGuide, $btnUninstall, $lblTask))
+$form.Controls.AddRange(@($lblTitle, $lblSubtitle, $lnkLang, $lblDot, $lblStatus, $lblInfo, $btnToggle, $grpAdd, $tabs, $btnTest, $btnRepair, $btnLog, $btnGuide, $btnUninstall, $lblTask))
 $form.AcceptButton = $btnAdd
 
 # Tooltips that say what a button does when the mouse hovers over it
 $toolTip = New-Object Windows.Forms.ToolTip
 $toolTip.AutoPopDelay = 15000; $toolTip.InitialDelay = 350; $toolTip.ReshowDelay = 100
-$toolTip.SetToolTip($btnToggle, "Servisi durdurur ya da başlatır.`nDurdurulunca engelli siteler açılmaz ve servis açılışta da başlamaz.")
-$toolTip.SetToolTip($btnAdd,    "Siteyi listeye ekler ve kurulumu yeniler (birkaç saniye).")
-$toolTip.SetToolTip($btnTest,    "Hattı baştan test edip ayarı yeniden seçer (2-3 dakika).`nEngelli siteler yeniden kapanmaya başladıysa kullan.")
-$toolTip.SetToolTip($btnRepair,    "Kurulum adımlarını yeniden çalıştırır: servis, DNS kuralı, tarayıcı ayarı, doğrulama.`nSeçili ayarı değiştirmez.")
-$toolTip.SetToolTip($btnLog,   "Son kurulumun kaydını Not Defteri'nde açar: hangi ayar seçildi, doğrulama geçti mi.`nBir şey çalışmadığında nedenine buradan bakılır.")
-$toolTip.SetToolTip($btnGuide, "Kullanım kılavuzunu Not Defteri'nde açar.")
-$toolTip.SetToolTip($btnUninstall, "SlipDPI'ı kaldırır ve yaptığı bütün değişiklikleri geri alır.")
+$toolTip.SetToolTip($btnToggle, ((T 'Stops or starts the service.') + "`n" + (T 'While stopped, blocked sites do not open and the service does not start at boot either.')))
+$toolTip.SetToolTip($btnAdd,    (T 'Adds the site to the list and refreshes the install (a few seconds).'))
+$toolTip.SetToolTip($btnTest,    ((T 'Tests the line from scratch and selects the setting again (2-3 minutes).') + "`n" + (T 'Use it if blocked sites have started failing again.')))
+$toolTip.SetToolTip($btnRepair,    ((T 'Runs the install steps again: service, DNS rule, browser setting, verification.') + "`n" + (T 'Does not change the selected setting.')))
+$toolTip.SetToolTip($btnLog,   ((T 'Opens the log of the last install in Notepad: which setting was selected, whether verification passed.') + "`n" + (T 'This is where to look for the reason when something does not work.')))
+$toolTip.SetToolTip($btnGuide, (T 'Opens the user guide in Notepad.'))
+$toolTip.SetToolTip($btnUninstall, (T 'Uninstalls SlipDPI and reverts every change it made.'))
 
 $actionButtons = @($btnToggle, $btnAdd, $tabManual.Button, $tabAuto.Button, $tabExcluded.Button, $btnTest, $btnRepair, $btnUninstall)
 
@@ -146,7 +161,7 @@ function Fill-List($tab, $items) {
     foreach ($o in $items) { [void]$tab.List.Items.Add($o) }
     if ($selected -and $tab.List.Items.Contains($selected)) { $tab.List.SelectedItem = $selected }
     $tab.List.EndUpdate()
-    $tab.Page.Text = "{0} ({1})" -f $tab.Title, @($items).Count
+    $tab.Page.Text = $tab.Title -f @($items).Count
 }
 
 function Update-View {
@@ -156,20 +171,20 @@ function Update-View {
     $script:LastSignature = $signature
 
     if (-not $d.Installed) {
-        $lblDot.ForeColor = $Gray; $lblStatus.Text = 'Kurulu değil'; $btnToggle.Text = 'Kur'
+        $lblDot.ForeColor = $Gray; $lblStatus.Text = (T 'Not installed'); $btnToggle.Text = (T 'Install')
     } elseif ($d.Running) {
-        $lblDot.ForeColor = $Green; $btnToggle.Text = 'Durdur'
-        $lblStatus.Text = 'Çalışıyor' + $(if ($d.AutoStart) { '  ·  açılışta kendiliğinden başlar' } else { '' })
+        $lblDot.ForeColor = $Green; $btnToggle.Text = (T 'Stop')
+        $lblStatus.Text = (T 'Running') + $(if ($d.AutoStart) { '  ·  ' + (T 'starts automatically at boot') } else { '' })
     } else {
-        $lblDot.ForeColor = $Orange; $lblStatus.Text = 'Durduruldu  ·  engelli siteler açılmaz'; $btnToggle.Text = 'Başlat'
+        $lblDot.ForeColor = $Orange; $lblStatus.Text = (T 'Stopped') + '  ·  ' + (T 'blocked sites will not open'); $btnToggle.Text = (T 'Start')
     }
 
-    $settingText = 'Ayar: henüz seçilmedi'
-    if ($d.Ttl -gt 0) { $settingText = "Ayar: sahte açılış paketi, ömür (TTL) $($d.Ttl)" }
-    elseif ($d.Strategy) { $settingText = 'Ayar: ' + ($d.Strategy -replace '--dpi-desync(-[a-z-]+)?=', '') }
+    $settingText = (T 'Setting: not selected yet')
+    if ($d.Ttl -gt 0) { $settingText = (T 'Setting: fake opening packet, lifetime (TTL) {0}' $d.Ttl) }
+    elseif ($d.Strategy) { $settingText = (T 'Setting: {0}' ($d.Strategy -replace '--dpi-desync(-[a-z-]+)?=', '')) }
     $dns = ''
-    if ($d.DnsServers) { $dns = "DNS: $($d.DnsServers)" + $(if ($d.DnsLevel -eq 2) { ' (şifreli)' } elseif ($d.DnsLevel -eq 0) { ' (çalışmıyor)' } else { '' }) }
-    $secondLine = @($dns, $(if ($d.İnstalledAt) { "Son kurulum: $($d.İnstalledAt)" } else { '' })) | Where-Object { $_ }
+    if ($d.DnsServers) { $dns = "DNS: $($d.DnsServers)" + $(if ($d.DnsLevel -eq 2) { (T ' (encrypted)') } elseif ($d.DnsLevel -eq 0) { (T ' (not working)') } else { '' }) }
+    $secondLine = @($dns, $(if ($d.InstalledAt) { (T 'Last install: {0}' $d.InstalledAt) } else { '' })) | Where-Object { $_ }
     $lblInfo.Text = $settingText + "`n" + ($secondLine -join '   ·   ')
 
     Fill-List $tabDiscord $d.Discord
@@ -186,10 +201,10 @@ function Start-Task($scriptFile, $arg, $label, [switch]$Hidden, [switch]$KeepOpe
     $filePath = Join-Path $root $scriptFile
     $a = '-NoProfile -ExecutionPolicy Bypass ' + $(if ($Hidden) { '-WindowStyle Hidden ' } else { '' }) + $(if ($KeepOpen) { '-NoExit ' } else { '' }) + "-File `"$filePath`" $arg"
     try { $p = Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $a.Trim() -PassThru -ErrorAction Stop }
-    catch { $lblTask.Text = 'Yönetici izni verilmedi; işlem yapılmadı.'; return }
+    catch { $lblTask.Text = (T 'Administrator permission was not granted; nothing was done.'); return }
     $script:RunningProcess = $p
     foreach ($b in $actionButtons) { $b.Enabled = $false }
-    $lblTask.Text = "$label..." + $(if (-not $Hidden) { '  Açılan pencere iş bitince kapanır.' } else { '' })
+    $lblTask.Text = "$label..." + $(if (-not $Hidden) { (T '  The window that opens closes when the job is done.') } else { '' })
 }
 
 function Normalize-Domain($raw) {
@@ -200,55 +215,56 @@ function Normalize-Domain($raw) {
 
 $btnToggle.Add_Click({
     $d = Get-Status
-    if (-not $d.Installed)   { Start-Task 'install.ps1' '-FromSetup' 'Kuruluyor'; return }
-    if ($d.Running)     { Start-Task 'toggle.ps1' '' 'Durduruluyor' -Hidden }
-    else                  { Start-Task 'toggle.ps1' '' 'Başlatılıyor' -Hidden }
+    if (-not $d.Installed)   { Start-Task 'install.ps1' '-FromSetup' (T 'Installing'); return }
+    if ($d.Running)     { Start-Task 'toggle.ps1' '' (T 'Stopping') -Hidden }
+    else                  { Start-Task 'toggle.ps1' '' (T 'Starting') -Hidden }
 })
 
 $btnAdd.Add_Click({
     $d = Normalize-Domain $txtSite.Text
-    if (-not $d) { [void][Windows.Forms.MessageBox]::Show($form, 'Geçerli bir site adı yaz. Örnek: ornek.com', 'SlipDPI', 'OK', 'Information'); return }
+    if (-not $d) { [void][Windows.Forms.MessageBox]::Show($form, (T 'Enter a valid site name. Example: example.com'), 'SlipDPI', 'OK', 'Information'); return }
     $txtSite.Text = ''
-    Start-Task 'add-site.ps1' "-Domain $d -Panel" "$d ekleniyor"
+    Start-Task 'add-site.ps1' "-Domain $d -Panel" (T 'Adding {0}' $d)
 })
 
 $tabManual.Button.Add_Click({
     $s = $tabManual.List.SelectedItem; if (-not $s) { return }
-    Start-Task 'add-site.ps1' "-Domain $s -Remove -Panel" "$s çıkarılıyor"
+    Start-Task 'add-site.ps1' "-Domain $s -Remove -Panel" (T 'Removing {0}' $s)
 })
 $tabAuto.Button.Add_Click({
     $s = $tabAuto.List.SelectedItem; if (-not $s) { return }
-    Start-Task 'auto-list.ps1' "-Delete $s -Panel" "$s çıkarılıyor"
+    Start-Task 'auto-list.ps1' "-Delete $s -Panel" (T 'Removing {0}' $s)
 })
 $tabExcluded.Button.Add_Click({
     $s = $tabExcluded.List.SelectedItem; if (-not $s) { return }
-    Start-Task 'auto-list.ps1' "-Unexclude $s -Panel" "$s hariç listesinden çıkarılıyor"
+    Start-Task 'auto-list.ps1' "-Unexclude $s -Panel" (T 'Removing {0} from the exclude list' $s)
 })
 
 $btnTest.Add_Click({
-    $c = [Windows.Forms.MessageBox]::Show($form, "Hat baştan test edilip ayar yeniden seçilecek.`n`n2-3 dakika sürer; bu sırada engelli siteler ve Discord kapanır.`n`nDevam edilsin mi?", 'SlipDPI', 'YesNo', 'Question')
-    if ($c -eq 'Yes') { Start-Task 'install.ps1' '-FromSetup -Retest' 'Hat test ediliyor' }
+    $c = [Windows.Forms.MessageBox]::Show($form, ((T 'The line will be tested from scratch and the setting selected again.') + "`n`n" + (T 'It takes 2-3 minutes; blocked sites and Discord stop working meanwhile.') + "`n`n" + (T 'Continue?')), 'SlipDPI', 'YesNo', 'Question')
+    if ($c -eq 'Yes') { Start-Task 'install.ps1' '-FromSetup -Retest' (T 'Testing the line') }
 })
-$btnRepair.Add_Click({ Start-Task 'install.ps1' '-FromSetup' 'Yeniden kuruluyor' })
+$btnRepair.Add_Click({ Start-Task 'install.ps1' '-FromSetup' (T 'Reinstalling') })
 
 $btnLog.Add_Click({
     $log = Join-Path $root 'local\install.log'
     if (Test-Path $log) { Start-Process notepad.exe -ArgumentList "`"$log`"" }
-    else { [void][Windows.Forms.MessageBox]::Show($form, 'Henüz bir kurulum kaydı yok.', 'SlipDPI', 'OK', 'Information') }
+    else { [void][Windows.Forms.MessageBox]::Show($form, (T 'There is no install log yet.'), 'SlipDPI', 'OK', 'Information') }
 })
 
 $btnGuide.Add_Click({
     $guidePath = Join-Path $root 'README.md'
+    if ($Lang -eq 'en' -and (Test-Path (Join-Path $root 'README.en.md'))) { $guidePath = Join-Path $root 'README.en.md' }
     if (Test-Path $guidePath) { Start-Process notepad.exe -ArgumentList "`"$guidePath`"" }
-    else { [void][Windows.Forms.MessageBox]::Show($form, 'Kılavuz dosyası (README.md) bulunamadı.', 'SlipDPI', 'OK', 'Information') }
+    else { [void][Windows.Forms.MessageBox]::Show($form, (T 'The guide file (README.md) was not found.'), 'SlipDPI', 'OK', 'Information') }
 })
 
 $btnUninstall.Add_Click({
-    $c = [Windows.Forms.MessageBox]::Show($form, "SlipDPI kaldırılacak: servis, DNS kuralı ve tarayıcı ayarı geri alınır, otomatik liste silinir.`n`nEngelli siteler yeniden kapanır. Devam edilsin mi?", 'SlipDPI', 'YesNo', 'Warning')
+    $c = [Windows.Forms.MessageBox]::Show($form, ((T 'SlipDPI will be uninstalled: the service, DNS rule and browser setting are reverted, the automatic list is deleted.') + "`n`n" + (T 'Blocked sites will stop opening again. Continue?')), 'SlipDPI', 'YesNo', 'Warning')
     if ($c -ne 'Yes') { return }
     $unins = Join-Path $InstallDir 'unins000.exe'
     if ((Test-InstalledLayout $root) -and (Test-Path $unins)) { Start-Process $unins; $form.Close() }
-    else { Start-Task 'uninstall.ps1' '' 'Kaldırılıyor' -KeepOpen }
+    else { Start-Task 'uninstall.ps1' '' (T 'Uninstalling') -KeepOpen }
 })
 
 $timer = New-Object Windows.Forms.Timer
@@ -261,7 +277,7 @@ $timer.Add_Tick({
         if (-not $finished) { return }
         $script:RunningProcess = $null
         foreach ($b in $actionButtons) { $b.Enabled = $true }
-        $lblTask.Text = 'Bitti.'
+        $lblTask.Text = (T 'Done.')
     }
     Update-View
 })

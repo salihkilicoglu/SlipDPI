@@ -6,9 +6,9 @@ A small Windows program that gets past hostname-based (SNI) blocking in Türkiye
 once and it takes care of the rest: it runs in the background as a service and starts by itself every
 time the computer starts. Speed and ping stay the same, and game traffic is never touched.
 
-![SlipDPI control window](docs/panel.png)
+![SlipDPI control window](docs/panel.en.png)
 
-*The sites in the screenshot are sample data. The window and the installer are in Turkish.*
+*The sites in the screenshot are sample data.*
 
 ## Why SlipDPI
 
@@ -26,6 +26,7 @@ time the computer starts. Speed and ping stay the same, and game traffic is neve
 - **Discord works out of the box.** Discord text and voice work right after installation.
 - **Lightweight.** The installer is about 3 MB and the service uses about 8 MB of memory. It does not
   change the system-wide DNS setting.
+- **English and Turkish.** The installer asks for the language; the window can switch it later.
 - **One-click uninstall.** Uninstalling removes the service, the driver and every setting it made;
   nothing is left behind.
 
@@ -37,7 +38,7 @@ time the computer starts. Speed and ping stay the same, and game traffic is neve
 1. Download `SlipDPI-setup-<version>.exe` from the [Releases](../../releases) page and run it.
 2. If Windows shows "Windows protected your PC", choose "More info" → "Run anyway". The installer is not
    signed; you can compare the file with `SHA256SUMS.txt` on the same page.
-3. Choose whether you want a Start menu and a desktop shortcut, then press "Kur" (Install).
+3. Pick the language, choose whether you want a Start menu and a desktop shortcut, then press "Install".
 4. A console window opens and does the rest: it tests your line, picks a setting, installs the service
    and checks that it works. On first install this takes 2-3 minutes and blocked sites are unreachable
    meanwhile.
@@ -56,27 +57,27 @@ In everyday use there is nothing to do. When you want to see the status or chang
 "SlipDPI" shortcut (or `C:\Program Files\SlipDPI\panel.cmd` if you chose no shortcut) opens the control
 window. Closing the window does not stop the program.
 
-- **Durdur / Başlat** (Stop / Start): turns the program off or on. While stopped it does not start with
+- **Stop / Start:** turns the program off or on. While stopped it does not start with
   Windows either.
-- **Ekle / Çıkar** (Add / Remove): adds a blocked site to the list or removes it.
-- **Çıkar ve hariç tut** (Remove and exclude): removes a site the program learned and keeps it from
-  being added again. "Geri al" (Undo) reverses this.
-- **Yeniden test et** (Test again): tests the line from scratch and picks the setting again. Use it if
+- **Add / Remove:** adds a blocked site to the list or removes it.
+- **Remove and exclude:** removes a site the program learned and keeps it from
+  being added again. "Undo" reverses this.
+- **Test again:** tests the line from scratch and picks the setting again. Use it if
   blocked sites stop opening.
-- **Onar** (Repair): runs the setup steps again.
-- **Kurulum kaydı** (Setup log): opens the log of the last setup.
-- **Kılavuz** (Guide): opens the Turkish guide.
-- **Kaldır** (Uninstall): removes the program.
+- **Repair:** runs the setup steps again.
+- **Setup log:** opens the log of the last setup.
+- **Guide:** opens this guide.
+- **Uninstall:** removes the program.
 
-Hovering over a button shows what it does. "Yeniden test et" and "Onar" do not delete the lists.
+Hovering over a button shows what it does. "Test again" and "Repair" do not delete the lists. The link in the top right corner of the window switches between English and Turkish.
 
 ### A new blocked site
 
 Usually you do not need to do anything: if a site that is not on the list is blocked three times within
 a minute, the program adds it to its own list. In practice, refreshing the page two or three times is
-enough, and it stays from then on. If that does not work, add it yourself with "Ekle".
+enough, and it stays from then on. If that does not work, add it yourself with "Add".
 
-Sites the program learned are shown on the "Otomatik eklenenler" tab. That list is stored on your
+Sites the program learned are shown on the "Added automatically" tab. That list is stored on your
 computer as plain text and contains the names of the blocked sites you opened.
 
 ## What it touches and what it does not
@@ -101,19 +102,19 @@ The change is made only when a connection opens; download data is not touched.
 - **A new blocked site does not open:** refresh the page two or three times; if that fails, add it from
   the window. In a browser other than Chrome, check that Secure DNS is on.
 - **Blocked sites stopped opening:** check in the window that the program is running, then use
-  "Yeniden test et".
-- **A site that used to work broke:** if it is on the "Otomatik eklenenler" tab, use "Çıkar ve hariç tut".
+  "Test again".
+- **A site that used to work broke:** if it is on the "Added automatically" tab, use "Remove and exclude".
 - **A site you removed still opens:** if the site is blocked, the program learns it again. Use
-  "Çıkar ve hariç tut" if you never want it handled.
-- **Setup ended with an error:** try again with "Onar". If the service does not start, an antivirus
+  "Remove and exclude" if you never want it handled.
+- **Setup ended with an error:** try again with "Repair". If the service does not start, an antivirus
   (e.g. Kaspersky) may be blocking the WinDivert driver the program uses.
 - **Discord is stuck on "Starting...":** quit Discord completely from the system tray and open it again.
-- **Something broke and you do not know why:** press "Durdur" in the window. If the problem continues,
+- **Something broke and you do not know why:** press "Stop" in the window. If the problem continues,
   this program is not the cause.
 
 ## Uninstalling
 
-"Kaldır" in the control window, or Settings → Apps → SlipDPI → Uninstall. If you installed from the zip,
+"Uninstall" in the control window, or Settings → Apps → SlipDPI → Uninstall. If you installed from the zip,
 run `uninstall.cmd`. The service, driver, DNS rule, Chrome setting, shortcuts and lists are removed; the
 system returns to how it was before installation.
 
@@ -141,7 +142,7 @@ If you use another browser, turn the same setting on by hand and choose Google a
 - **Measurements come from that one line.** There, ping, page load time, download speed and upload speed
   measured the same with the program on and off.
 - **On Windows 10** the browser works, but apps such as Discord may not.
-- If the provider changes how it blocks, the chosen setting may stop working; "Yeniden test et" looks
+- If the provider changes how it blocks, the chosen setting may stop working; "Test again" looks
   for a new one.
 - You use this program at your own responsibility.
 

@@ -50,10 +50,10 @@ $localDir = Get-LocalDir $root
 Start-Transcript -Path (Join-Path $localDir 'install.log') -Force | Out-Null
 function Q($p) { '"' + $p + '"' }
 function Fail($msg) {
-    Write-Host "`nDURDU: $msg" -ForegroundColor Red
+    Write-Host ("`n" + (T 'STOPPED: {0}' $msg)) -ForegroundColor Red
     Stop-Transcript | Out-Null
-    if ($FromSetup) { Read-Host "`nKapatmak icin Enter" | Out-Null; exit 1 }
-    throw "SlipDPI kurulumu durdu: $msg"
+    if ($FromSetup) { Read-Host ("`n" + (T 'Press Enter to close')) | Out-Null; exit 1 }
+    throw (T 'SlipDPI install stopped: {0}' $msg)
 }
 
 function Probe($url, $name, $ip) {
@@ -97,7 +97,7 @@ function Sync-File($src, $dst) {
         $same = $false
         if (Test-Path $t) { try { $same = ((Get-FileHash $t -Algorithm SHA256 -ErrorAction Stop).Hash -eq (Get-FileHash $f.FullName -Algorithm SHA256 -ErrorAction Stop).Hash) } catch { $same = $false } }
         if ($same) { continue }
-        try { Copy-Item $f.FullName $t -Force -ErrorAction Stop } catch { Fail "Kopyalanamadi: $t  ($($_.Exception.Message))" }
+        try { Copy-Item $f.FullName $t -Force -ErrorAction Stop } catch { Fail (T 'Could not copy: {0}  ({1})' $t $_.Exception.Message) }
     }
     $names = @($srcFiles | ForEach-Object { $_.Name })
     foreach ($x in @(Get-ChildItem $dst -Force)) {
@@ -106,35 +106,35 @@ function Sync-File($src, $dst) {
 }
 
 # ---- 0) pre-checks --------------------------------------------------------------------------
-Write-Step '0/7  On kontroller'
-if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { Fail "Yalnizca 64 bit (x64) Windows desteklenir. Bu makine: $env:PROCESSOR_ARCHITECTURE" }
+Write-Step (T '0/7  Pre-checks')
+if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { Fail (T 'Only 64-bit (x64) Windows is supported. This machine: {0}' $env:PROCESSOR_ARCHITECTURE) }
 foreach ($f in 'bin\winws.exe', 'bin\WinDivert.dll', 'bin\WinDivert64.sys', 'bin\cygwin1.dll', 'bin\SHA256SUMS.txt',
                'filters\windivert_part.quic_initial_ietf.txt', 'filters\windivert_part.discord_media.txt',
                'lists\discord.txt', 'lists\sites.txt', 'lists\exclude.txt') {
-    if (-not (Test-Path (Join-Path $root $f))) { Fail "Eksik dosya: $f" }
+    if (-not (Test-Path (Join-Path $root $f))) { Fail (T 'Missing file: {0}' $f) }
 }
 # Do the engine files match the hashes stored in the repository? (detects download corruption or tampering)
 foreach ($line in (Get-Lines (Join-Path $root 'bin\SHA256SUMS.txt'))) {
     $parts = $line -split '\s+', 2
     if ($parts.Count -ne 2) { continue }
     $got = (Get-FileHash (Join-Path $root "bin\$($parts[1])") -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($got -ne $parts[0]) { Fail "bin\$($parts[1]) dosyasinin ozeti SHA256SUMS.txt ile eslesmiyor. Depoyu yeniden indir." }
+    if ($got -ne $parts[0]) { Fail (T 'The hash of bin\{0} does not match SHA256SUMS.txt. Download the repository again.' $parts[1]) }
 }
 $foreign = @(Get-Process goodbyedpi, ciadpi, winws2 -ErrorAction SilentlyContinue)
-if ($foreign.Count -gt 0) { Fail "Baska bir DPI araci calisiyor: $($foreign[0].ProcessName). Once onu kapat." }
+if ($foreign.Count -gt 0) { Fail (T 'Another DPI tool is running: {0}. Close it first.' $foreign[0].ProcessName) }
 $dohPresent = [bool](Get-Command Set-DnsClientDohServerAddress -ErrorAction SilentlyContinue)
-if (-not $dohPresent) { Write-Host 'Not: bu Windows surumunde sistem duzeyinde sifreli DNS (DoH) yok (Windows 11 gerekir). Tarayici disindaki uygulamalarda DNS engeli asilamayabilir.' -ForegroundColor Yellow }
-Write-Host 'Tamam: dosyalar yerinde ve ozetleri dogru.'
+if (-not $dohPresent) { Write-Host (T 'Note: this Windows version has no system-level encrypted DNS (DoH) (Windows 11 is required). The DNS block may not be bypassed in apps other than the browser.') -ForegroundColor Yellow }
+Write-Host (T 'OK: files are in place and their hashes are correct.')
 
 # ---- 1) stop the old install -------------------------------------------------------------------
-Write-Step '1/7  Onceki kurulum'
+Write-Step (T '1/7  Previous install')
 $old = Read-State
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
-    Write-Host 'Onceki SlipDPI servisi durdurulup kaldiriliyor...'
+    Write-Host (T 'Stopping and removing the previous SlipDPI service...')
     Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
     sc.exe delete $ServiceName | Out-Null
     for ($i = 0; $i -lt 20; $i++) { if (-not (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 300 }
-} else { Write-Host 'Onceki servis yok.' }
+} else { Write-Host (T 'No previous service.') }
 Get-Process winws -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 # The WinDivert driver stays loaded after the engine exits and locks the .sys file; unload it too.
@@ -149,39 +149,39 @@ if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDivert') {
 }
 
 # ---- 2) strategy -------------------------------------------------------------------------------
-Write-Step '2/7  Strateji'
+Write-Step (T '2/7  Strategy')
 $strategyFile = Join-Path $localDir 'strategy.json'
 if ($Retest -and (Test-Path $strategyFile)) {
     Move-Item $strategyFile (Join-Path $localDir 'strategy.previous.json') -Force
-    Write-Host 'Onceki secim kenara alindi (strategy.previous.json); hat yeniden test edilecek.'
+    Write-Host (T 'The previous choice was set aside (strategy.previous.json); the line will be tested again.')
 }
 if (-not (Test-Path $strategyFile)) {
-    Write-Host 'Bu hat icin strateji secilmemis; strateji testi calistiriliyor (birkac dakika surer)...'
-    try { & (Join-Path $root 'strategy-test.ps1') -Nested } catch { Fail "Strateji testi calismadi: $($_.Exception.Message)" }
-    if (-not (Test-Path $strategyFile)) { Fail 'Strateji testi bu hatta calisan bir ayar bulamadi. Ayrinti: local\strategy-test.json' }
+    Write-Host (T 'No strategy has been picked for this line; running the strategy test (takes a few minutes)...')
+    try { & (Join-Path $root 'strategy-test.ps1') -Nested } catch { Fail (T 'The strategy test did not run: {0}' $_.Exception.Message) }
+    if (-not (Test-Path $strategyFile)) { Fail (T 'The strategy test found no working setting on this line. Details: local\strategy-test.json') }
 }
-try { $strat = Get-Content $strategyFile -Raw | ConvertFrom-Json } catch { Fail "local\strategy.json okunamadi: $($_.Exception.Message)" }
+try { $strat = Get-Content $strategyFile -Raw | ConvertFrom-Json } catch { Fail (T 'Could not read local\strategy.json: {0}' $_.Exception.Message) }
 $TcpStrategy = "$($strat.tcp)".Trim()
 $Ttl = 0; if ($strat.ttl) { $Ttl = [int]$strat.ttl }
-if (-not $TcpStrategy -or $TcpStrategy -notmatch '^--dpi-desync=') { Fail 'local\strategy.json icinde gecerli bir strateji yok. Dosyayi silip install.ps1 i yeniden calistir.' }
-Write-Host ("Strateji: {0}   (kaynak: {1}, {2})" -f $TcpStrategy, $strat.source, $strat.selectedAt)
-if ($Ttl -le 0) { Write-Host 'Bu strateji TTL kullanmiyor; QUIC ve ses kurallari eklenmeyecek (tarayici TCP ye duser).' -ForegroundColor Yellow }
+if (-not $TcpStrategy -or $TcpStrategy -notmatch '^--dpi-desync=') { Fail (T 'There is no valid strategy in local\strategy.json. Delete the file and run install.ps1 again.') }
+Write-Host (T 'Strategy: {0}   (source: {1}, {2})' $TcpStrategy $strat.source $strat.selectedAt)
+if ($Ttl -le 0) { Write-Host (T 'This strategy does not use TTL; the QUIC and voice rules will not be added (the browser falls back to TCP).') -ForegroundColor Yellow }
 
 # ---- 3) files -------------------------------------------------------------------------------
-Write-Step '3/7  Dosyalar'
+Write-Step (T '3/7  Files')
 New-Item -ItemType Directory -Force $InstallDir | Out-Null
 if (Test-InstalledLayout $root) {
-    Write-Host "Paket kurulum programiyla bu klasore kurulmus; kopyalama gerekmiyor: $InstallDir"
+    Write-Host (T 'The package was installed into this folder by the setup program; no copying needed: {0}' $InstallDir)
 } else {
     foreach ($d in 'bin', 'filters', 'lists') { Sync-File (Join-Path $root $d) (Join-Path $InstallDir $d) }
-    Write-Host "Esitlendi: $InstallDir"
+    Write-Host (T 'Synced: {0}' $InstallDir)
 }
 # the auto list is kept across reinstalls; created empty if missing
 if (-not (Test-Path $AutoList)) { Set-Content -Path $AutoList -Value $null -Encoding ASCII }
-Write-Host ("Otomatik listede su an {0} alan adi var." -f @(Get-Lines $AutoList).Count)
+Write-Host (T 'The auto list currently has {0} domains.' (@(Get-Lines $AutoList).Count))
 
 # ---- 4) engine config and service ------------------------------------------------------------------
-Write-Step '4/7  Motor ve servis'
+Write-Step (T '4/7  Engine and service')
 $hl   = '--hostlist=' + (Q "$InstallDir\lists\discord.txt") + ' --hostlist=' + (Q "$InstallDir\lists\sites.txt")
 $exc  = '--hostlist-exclude=' + (Q "$InstallDir\lists\exclude.txt")
 $auto = '--hostlist-auto=' + (Q $AutoList) + ' --hostlist-auto-debug=' + (Q $AutoLog)
@@ -196,33 +196,33 @@ if ($Ttl -gt 0) {
 $engineArgs = ($wfFilter -join ' ') + ' ' + ($profiles -join ' --new ')
 $exe = "$InstallDir\bin\winws.exe"
 foreach ($f in 'winws.exe', 'WinDivert.dll', 'WinDivert64.sys', 'cygwin1.dll') {
-    if (-not (Test-Path (Join-Path "$InstallDir\bin" $f))) { Fail "Kurulu klasorde motor dosyasi eksik: $InstallDir\bin\$f" }
+    if (-not (Test-Path (Join-Path "$InstallDir\bin" $f))) { Fail (T 'An engine file is missing in the install folder: {0}' "$InstallDir\bin\$f") }
 }
 # The engine's full command line is long and unreadable, so it is written to a file, not the screen.
 Set-Content -Path (Join-Path $localDir 'engine-args.txt') -Value $engineArgs -Encoding ASCII
-Write-Host ("Kurallar: {0}   (tam komut satiri: {1})" -f $profiles.Count, (Join-Path $localDir 'engine-args.txt'))
+Write-Host (T 'Rules: {0}   (full command line: {1})' $profiles.Count (Join-Path $localDir 'engine-args.txt'))
 $dry = Start-Process -FilePath $exe -ArgumentList "$engineArgs --dry-run" -WorkingDirectory "$InstallDir\bin" -NoNewWindow -Wait -PassThru `
         -RedirectStandardOutput (Join-Path $localDir 'install-dryrun.out.txt') -RedirectStandardError (Join-Path $localDir 'install-dryrun.err.txt')
 if ($dry.ExitCode -ne 0) {
     Get-Content (Join-Path $localDir 'install-dryrun.out.txt'), (Join-Path $localDir 'install-dryrun.err.txt') -ErrorAction SilentlyContinue | Select-Object -Last 8 | Out-Host
-    Fail "Motor ayari dogrulanamadi (cikis kodu $($dry.ExitCode)). Servis olusturulmadi."
+    Fail (T 'The engine configuration could not be validated (exit code {0}). The service was not created.' $dry.ExitCode)
 }
-Write-Host 'Ayar motorun kendi denetiminden gecti.' -ForegroundColor Green
+Write-Host (T 'The engine itself accepted the configuration.') -ForegroundColor Green
 
 try {
     New-Service -Name $ServiceName -BinaryPathName ((Q $exe) + ' ' + $engineArgs) -DisplayName 'SlipDPI (zapret winws)' `
-        -Description 'Yalnizca listedeki engelli alan adlarina giden baglantilarin acilis paketini duzenler. Kaldirmak icin: SlipDPI\uninstall.ps1' `
+        -Description (T 'Modifies the opening packet of connections going only to the blocked domains on the list. To remove: SlipDPI\uninstall.ps1') `
         -StartupType Automatic -ErrorAction Stop | Out-Null
-} catch { Fail "Servis olusturulamadi: $($_.Exception.Message)" }
+} catch { Fail (T 'Could not create the service: {0}' $_.Exception.Message) }
 sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/5000/restart/60000 | Out-Null
-try { Start-Service -Name $ServiceName -ErrorAction Stop } catch { Write-Host "Servis baslatilamadi: $($_.Exception.Message)" -ForegroundColor Yellow }
+try { Start-Service -Name $ServiceName -ErrorAction Stop } catch { Write-Host (T 'Could not start the service: {0}' $_.Exception.Message) -ForegroundColor Yellow }
 Start-Sleep -Seconds 2
 $svc = Get-Service -Name $ServiceName
-if ($svc.Status -ne 'Running' -or -not (Get-Process winws -ErrorAction SilentlyContinue)) { Fail "Servis calismiyor (durum: $($svc.Status)). Antivirus WinDivert surucusunu engelliyor olabilir." }
-Write-Host 'Servis calisiyor ve acilista otomatik baslayacak.' -ForegroundColor Green
+if ($svc.Status -ne 'Running' -or -not (Get-Process winws -ErrorAction SilentlyContinue)) { Fail (T 'The service is not running (status: {0}). Antivirus may be blocking the WinDivert driver.' $svc.Status) }
+Write-Host (T 'The service is running and will start automatically at boot.') -ForegroundColor Green
 
 # ---- 5) DNS: only for the names in the lists --------------------------------------------------
-Write-Step '5/7  DNS (yalnizca listelerdeki alan adlari)'
+Write-Step (T '5/7  DNS (only the domains in the lists)')
 $oldNames = @(); if ($old -and $old.nrptNames) { $oldNames = @($old.nrptNames) }
 
 # Servers whose DoH setting we changed in a previous install: keep the record if still in use,
@@ -234,8 +234,8 @@ if ($dohPresent -and $old -and $old.dohPrevious) {
         if ($DnsServers -contains $p.ServerAddress) { $kept += $p; continue }
         try {
             Set-DnsClientDohServerAddress -ServerAddress $p.ServerAddress -AutoUpgrade ([bool]$p.AutoUpgrade) -AllowFallbackToUdp ([bool]$p.AllowFallbackToUdp) -ErrorAction Stop | Out-Null
-            Write-Host "Artik kullanilmayan DNS sunucusu ozgun ayarina dondu: $($p.ServerAddress)"
-        } catch { Write-Host "DNS sunucusu ayari geri alinamadi ($($p.ServerAddress)): $($_.Exception.Message)" -ForegroundColor Yellow }
+            Write-Host (T 'A DNS server that is no longer used was restored to its original setting: {0}' $p.ServerAddress)
+        } catch { Write-Host (T 'Could not restore the DNS server setting ({0}): {1}' $p.ServerAddress $_.Exception.Message) -ForegroundColor Yellow }
     }
 }
 
@@ -254,7 +254,7 @@ $dnsRef = Resolve-RealIp $dnsName
 $enforced = ($kept.Count -gt 0)
 $dnsOk = Test-DnsClean $dnsName $dnsRef
 if (-not $dnsOk -and $dohPresent) {
-    Write-Host 'Duz DNS sorgusu kesiliyor ya da degistiriliyor. Bu sunucular icin sifreli DNS (DoH) zorunlu kiliniyor...'
+    Write-Host (T 'Plain DNS queries are being dropped or altered. Enforcing encrypted DNS (DoH) for these servers...')
     foreach ($s in $DnsServers) {
         $cur = Get-DnsClientDohServerAddress -ServerAddress $s -ErrorAction SilentlyContinue
         if ($cur) {
@@ -273,29 +273,29 @@ if (-not $dnsOk -and $dohPresent) {
 }
 $level = 0
 if ($dnsOk) { if ($enforced) { $level = 2 } else { $level = 1 } }
-if ($dnsOk) { Write-Host ("{0} alan adi icin DNS {1} uzerinden cozuluyor (seviye {2}); diger adlar modem DNS inde." -f $domains.Count, ($DnsServers -join ', '), $level) -ForegroundColor Green }
-else        { Write-Host "DNS adimi BASARISIZ: $dnsName hala dogru cozulmuyor. Motor calisiyor ama tarayici disindaki uygulamalar (Discord) acilmayabilir." -ForegroundColor Yellow }
-try { Write-Host ("$dnsName -> " + ((Resolve-DnsName $dnsName -Type A -DnsOnly -ErrorAction Stop | Where-Object { $_.IPAddress } | ForEach-Object { $_.IPAddress }) -join ', ')) } catch { Write-Host "$dnsName -> cozulemedi" }
+if ($dnsOk) { Write-Host (T 'DNS for {0} domains is resolved through {1} (level {2}); other names stay on the modem DNS.' $domains.Count ($DnsServers -join ', ') $level) -ForegroundColor Green }
+else        { Write-Host (T 'DNS step FAILED: {0} still does not resolve correctly. The engine is running but apps other than the browser (Discord) may not open.' $dnsName) -ForegroundColor Yellow }
+try { Write-Host ("$dnsName -> " + ((Resolve-DnsName $dnsName -Type A -DnsOnly -ErrorAction Stop | Where-Object { $_.IPAddress } | ForEach-Object { $_.IPAddress }) -join ', ')) } catch { Write-Host (T '{0} -> could not be resolved' $dnsName) }
 
 # ---- 6) browser: Secure DNS policy -------------------------------------------------------
-Write-Step '6/7  Tarayici Guvenli DNS'
+Write-Step (T '6/7  Browser Secure DNS')
 $oldPolicy = @(); if ($old -and $old.policies) { $oldPolicy = @($old.policies | Where-Object { $_ -and $_.root }) }
 $newPolicy = @()
 # revert the policy we set earlier in browsers that are no longer wanted
 $wantedRoots = @($BrowserDns | ForEach-Object { $PolicyRoots[$_] } | Where-Object { $_ })
 foreach ($e in $oldPolicy) {
-    if ($wantedRoots -notcontains $e.root) { Remove-Policy $e; Write-Host "Politika geri alindi: $($e.root)" }
+    if ($wantedRoots -notcontains $e.root) { Remove-Policy $e; Write-Host (T 'Policy reverted: {0}' $e.root) }
 }
-if (@($BrowserDns).Count -eq 0) { Write-Host 'Tarayici ayarina dokunulmadi ($TarayiciDns bos).' }
+if (@($BrowserDns).Count -eq 0) { Write-Host (T 'Browser setting left untouched ($BrowserDns is empty).') }
 foreach ($t in @($BrowserDns)) {
     $rootKey = $PolicyRoots[$t]
-    if (-not $rootKey) { Write-Host "Bilinmeyen tarayici adi: $t (atlandi)" -ForegroundColor Yellow; continue }
+    if (-not $rootKey) { Write-Host (T 'Unknown browser name: {0} (skipped)' $t) -ForegroundColor Yellow; continue }
     $previous = $oldPolicy | Where-Object { $_.root -eq $rootKey } | Select-Object -First 1
-    if (-not (Test-BrowserInstalled $t) -and -not $previous) { Write-Host "$t kurulu degil, atlandi."; continue }
+    if (-not (Test-BrowserInstalled $t) -and -not $previous) { Write-Host (T '{0} is not installed, skipped.' $t); continue }
     $result = Apply-Policy $rootKey $BrowserDoh $previous
     $newPolicy += $result.record
     foreach ($n in $result.notes) { Write-Host "  ${t}: $n" -ForegroundColor Yellow }
-    Write-Host ("{0}: Guvenli DNS politikasi yazildi ({1}). Tarayici bunu birkac saniye icinde alir; ayar artik kilitli gorunur." -f $t, (@($result.record.values) -join ', ')) -ForegroundColor Green
+    Write-Host (T '{0}: Secure DNS policy written ({1}). The browser picks it up within a few seconds; the setting now appears locked.' $t (@($result.record.values) -join ', ')) -ForegroundColor Green
 }
 
 $state = [ordered]@{ installedAt = (Get-Date).ToString('s'); strategy = $TcpStrategy; ttl = $Ttl; dnsLevel = $level; dnsServers = $DnsServers
@@ -303,58 +303,67 @@ $state = [ordered]@{ installedAt = (Get-Date).ToString('s'); strategy = $TcpStra
 [pscustomobject]$state | ConvertTo-Json -Depth 6 | Set-Content -Path $StatePath -Encoding UTF8
 
 # ---- 7) end-to-end verification (system DNS + engine together) ------------------------------------
-Write-Step '7/7  Dogrulama'
+Write-Step (T '7/7  Verification')
 $blocked  = 'https://discord.com/api/v9/gateway', 'https://gateway.discord.gg/', 'https://cdn.discordapp.com/', 'https://updates.discord.com/'
 $controls = 'https://www.google.com/generate_204', 'https://github.com/', 'https://www.cloudflare.com/cdn-cgi/trace'
 $bOk = 0; $cOk = 0
-foreach ($u in $blocked)  { $r = Probe $u; if ($r.ok) { $bOk++ }; Write-Host ("  {0,-6} {1,-42} http={2} tls={3}s" -f $(if ($r.ok) { 'ACIK' } else { 'KAPALI' }), $u, $r.code, $r.tls) }
-foreach ($u in $controls) { $r = Probe $u; if ($r.ok) { $cOk++ }; Write-Host ("  {0,-6} {1,-42} http={2} tls={3}s   (kontrol)" -f $(if ($r.ok) { 'ACIK' } else { 'KAPALI' }), $u, $r.code, $r.tls) }
+foreach ($u in $blocked)  { $r = Probe $u; if ($r.ok) { $bOk++ }; Write-Host ("  {0,-6} {1,-42} http={2} tls={3}s" -f $(if ($r.ok) { T 'OPEN' } else { T 'CLOSED' }), $u, $r.code, $r.tls) }
+foreach ($u in $controls) { $r = Probe $u; if ($r.ok) { $cOk++ }; Write-Host (T '  {0,-6} {1,-42} http={2} tls={3}s   (control)' $(if ($r.ok) { T 'OPEN' } else { T 'CLOSED' }) $u $r.code $r.tls) }
 
 # Auto list: keep connecting to a blocked name not in the manual lists and wait for the engine to learn it.
-Write-Step "Otomatik liste testi ($LearnTestDomain)"
-$autoResult = 'yapilamadi'
+Write-Step (T 'Auto list test ({0})' $LearnTestDomain)
+$autoResult = 'not-run'
 $staticList = @(@(Get-Lines "$InstallDir\lists\discord.txt") + @(Get-Lines "$InstallDir\lists\sites.txt"))
 if ($staticList -contains $LearnTestDomain) {
-    $autoResult = 'atlandi'
-    Write-Host "$LearnTestDomain elle listede oldugu icin test atlandi."
+    $autoResult = 'skipped'
+    Write-Host (T '{0} is on the manual list, so the test was skipped.' $LearnTestDomain)
 } elseif ($exclFile -contains $LearnTestDomain) {
-    $autoResult = 'atlandi'
-    Write-Host "$LearnTestDomain haric listesinde oldugu icin test atlandi."
+    $autoResult = 'skipped'
+    Write-Host (T '{0} is on the exclude list, so the test was skipped.' $LearnTestDomain)
 } else {
     $ip = Resolve-RealIp $LearnTestDomain | Select-Object -First 1
-    if (-not $ip) { Write-Host 'Gercek adres alinamadi, test yapilamadi.' -ForegroundColor Yellow }
+    if (-not $ip) { Write-Host (T 'Could not get the real address; the test was not run.') -ForegroundColor Yellow }
     else {
         $existedBefore = @(Get-Lines $AutoList) -contains $LearnTestDomain
-        Write-Host ("Gercek adres: {0}   testten once otomatik listede: {1}" -f $ip, $(if ($existedBefore) { 'evet' } else { 'hayir' }))
+        Write-Host (T 'Real address: {0}   in the auto list before the test: {1}' $ip $(if ($existedBefore) { T 'yes' } else { T 'no' }))
         $opened = 0
         for ($i = 1; $i -le 8; $i++) {
             $r = Probe "https://$LearnTestDomain/" $LearnTestDomain $ip
-            Write-Host ("  deneme {0}: {1}  http={2} cikis={3}" -f $i, $(if ($r.ok) { 'ACIK' } else { 'KAPALI' }), $r.code, $r.exit)
+            Write-Host (T '  attempt {0}: {1}  http={2} exit={3}' $i $(if ($r.ok) { T 'OPEN' } else { T 'CLOSED' }) $r.code $r.exit)
             if ($r.ok) { $opened = $i; break }
             Start-Sleep -Milliseconds 1200
         }
         Start-Sleep -Milliseconds 500
         $presentNow = @(Get-Lines $AutoList) -contains $LearnTestDomain
-        if ($opened -eq 1 -and -not $presentNow -and -not $existedBefore) { $autoResult = 'engelsiz';  Write-Host 'Bu ad bu hatta engelli degil; ogrenme sinanamadi.' -ForegroundColor Yellow }
-        elseif ($opened -gt 0 -and $presentNow -and $existedBefore)       { $autoResult = 'zaten';     Write-Host 'Onceden ogrenilmis, hemen acildi.' -ForegroundColor Green }
-        elseif ($opened -gt 0 -and $presentNow)                       { $autoResult = 'ogrendi';   Write-Host ("Motor siteyi {0}. denemede kendisi listeye ekledi ve acti." -f $opened) -ForegroundColor Green }
-        elseif ($opened -gt 0)                                      { $autoResult = 'belirsiz';  Write-Host 'Site acildi ama otomatik listede gorunmuyor.' -ForegroundColor Yellow }
-        else                                                        { $autoResult = 'ogrenmedi'; Write-Host ("8 denemede acilmadi. Otomatik listede: {0}" -f $(if ($presentNow) { 'var' } else { 'yok' })) -ForegroundColor Yellow }
+        if ($opened -eq 1 -and -not $presentNow -and -not $existedBefore) { $autoResult = 'unblocked';  Write-Host (T 'This name is not blocked on this line; learning could not be tested.') -ForegroundColor Yellow }
+        elseif ($opened -gt 0 -and $presentNow -and $existedBefore)       { $autoResult = 'already';     Write-Host (T 'Already learned, opened right away.') -ForegroundColor Green }
+        elseif ($opened -gt 0 -and $presentNow)                       { $autoResult = 'learned';   Write-Host (T 'The engine added the site to the list by itself on attempt {0} and opened it.' $opened) -ForegroundColor Green }
+        elseif ($opened -gt 0)                                      { $autoResult = 'unclear';  Write-Host (T 'The site opened but is not in the auto list.') -ForegroundColor Yellow }
+        else                                                        { $autoResult = 'not-learned'; Write-Host (T 'Did not open in 8 attempts. In the auto list: {0}' $(if ($presentNow) { T 'present' } else { T 'absent' })) -ForegroundColor Yellow }
     }
 }
-Write-Host ("Otomatik listede {0} alan adi var." -f @(Get-Lines $AutoList).Count)
+Write-Host (T 'The auto list has {0} domains.' (@(Get-Lines $AutoList).Count))
 
-Write-Step 'OZET'
-Write-Host ("Engelli adresler: {0}/{1} acik     Kontrol adresleri: {2}/{3} acik     DNS seviyesi: {4}     Otomatik liste testi: {5}" -f $bOk, $blocked.Count, $cOk, $controls.Count, $level, $autoResult)
-$allOk = ($bOk -eq $blocked.Count -and $cOk -eq $controls.Count -and ('ogrendi', 'zaten', 'atlandi', 'engelsiz') -contains $autoResult)
+Write-Step (T 'SUMMARY')
+$autoText = switch ($autoResult) {
+    'skipped'     { T 'skipped' }
+    'unblocked'   { T 'not blocked' }
+    'already'     { T 'already learned' }
+    'learned'     { T 'learned' }
+    'unclear'     { T 'unclear' }
+    'not-learned' { T 'not learned' }
+    default       { T 'not run' }
+}
+Write-Host (T 'Blocked addresses: {0}/{1} open     Control addresses: {2}/{3} open     DNS level: {4}     Auto list test: {5}' $bOk $blocked.Count $cOk $controls.Count $level $autoText)
+$allOk = ($bOk -eq $blocked.Count -and $cOk -eq $controls.Count -and ('learned', 'already', 'skipped', 'unblocked') -contains $autoResult)
 if ($allOk) {
-    Write-Host 'Kurulum tamam.' -ForegroundColor Green
+    Write-Host (T 'Install complete.') -ForegroundColor Green
 } else {
-    Write-Host ("Kurulum bitti ama dogrulama tam gecmedi. Ayrinti: " + (Join-Path $localDir 'install.log')) -ForegroundColor Yellow
+    Write-Host (T 'Install finished but verification did not fully pass. Details: {0}' (Join-Path $localDir 'install.log')) -ForegroundColor Yellow
 }
 Stop-Transcript | Out-Null
 if ($FromSetup) {
-    if ($allOk) { Write-Host "`nBu pencere 8 saniye sonra kapanacak."; Start-Sleep -Seconds 8; exit 0 }
-    Read-Host "`nKapatmak icin Enter" | Out-Null
+    if ($allOk) { Write-Host ("`n" + (T 'This window will close in 8 seconds.')); Start-Sleep -Seconds 8; exit 0 }
+    Read-Host ("`n" + (T 'Press Enter to close')) | Out-Null
     exit 2
 }

@@ -1,4 +1,4 @@
-# SlipDPI : functions shared by the scripts.
+﻿# SlipDPI : functions shared by the scripts.
 # Not meant to be run on its own; the other scripts dot-source this file:  . "$PSScriptRoot\common.ps1"
 
 $ServiceName = 'SlipDPI'
@@ -7,6 +7,39 @@ $InstallDir     = Join-Path $env:ProgramFiles 'SlipDPI'
 $AutoList = Join-Path $InstallDir 'auto.txt'
 $AutoLog = Join-Path $InstallDir 'auto-list.log'
 $StatePath = Join-Path $InstallDir 'state.json'
+
+# ---- language --------------------------------------------------------------------------------------
+# English is the source language of every message in the code. Other languages live in lang\<code>.psd1
+# as a table keyed by the English text; a message without a translation falls back to English.
+# Order of preference: the SLIPDPI_LANG environment variable (testing), the user's choice (HKCU, set from the control window), the installer's choice
+# (lang.txt next to the scripts), then the Windows display language.
+$LangKey = 'HKCU:\Software\SlipDPI'
+$Languages = [ordered]@{ en = 'English'; tr = 'Türkçe' }
+function Get-Language {
+    if ($env:SLIPDPI_LANG -and $Languages.Contains("$env:SLIPDPI_LANG")) { return "$env:SLIPDPI_LANG" }    # for testing
+    try {
+        $v = (Get-ItemProperty -Path $LangKey -Name Language -ErrorAction Stop).Language
+        if ($Languages.Contains("$v")) { return "$v" }
+    } catch { }
+    try {
+        $f = Join-Path $PSScriptRoot 'lang.txt'
+        if (Test-Path $f) { $v = "$(Get-Content $f -TotalCount 1)".Trim().ToLowerInvariant(); if ($Languages.Contains($v)) { return $v } }
+    } catch { }
+    if ((Get-UICulture).TwoLetterISOLanguageName -eq 'tr') { 'tr' } else { 'en' }
+}
+$Lang = Get-Language
+$Strings = @{}
+if ($Lang -ne 'en') {
+    $langFile = Join-Path $PSScriptRoot "lang\$Lang.psd1"
+    if (Test-Path $langFile) { try { $Strings = Import-PowerShellDataFile -Path $langFile } catch { $Strings = @{} } }
+}
+# T 'English text with {0}' arg0 arg1 ...  ->  the text in the current language, with the arguments filled in.
+function T {
+    param([string]$Text)
+    $v = $Strings[$Text]
+    if (-not $v) { $v = $Text }
+    if ($args.Count -gt 0) { $v -f $args } else { $v }
+}
 
 # Registry roots for the browser DNS policy (Chromium-based browsers use the same value names)
 $PolicyRoots = @{
@@ -22,7 +55,7 @@ function Test-Admin {
 
 # Restarts the script as administrator (opens a UAC prompt). $extraArgs: extra argument text for the script.
 function Invoke-Elevated($scriptFile, $extraArgs) {
-    Write-Host 'Yonetici izni isteniyor, acilan UAC penceresini onayla...'
+    Write-Host (T 'Asking for administrator rights; approve the UAC prompt that opens...')
     Start-Process powershell.exe -Verb RunAs -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$scriptFile`" $extraArgs").Trim()
 }
 
@@ -72,7 +105,7 @@ function Wait-BeforeClose {
         $parentPid = (Get-CimInstance Win32_Process -Filter "ProcessId=$PID" -ErrorAction Stop).ParentProcessId
         if ((Get-Process -Id $parentPid -ErrorAction Stop).ProcessName -ne 'explorer') { return }
         Write-Host ''
-        Read-Host 'Kapatmak icin Enter' | Out-Null
+        Read-Host (T 'Press Enter to close') | Out-Null
     } catch { }
 }
 
@@ -104,7 +137,7 @@ function Test-BrowserInstalled($key) {
 
 # Writes values under a policy root. Does not touch a value that another source has already set.
 # $values : [ordered]@{ name = value }    $previous : the previous install's record for this root (or $null)
-# Returns   : @{ kayit = <record to be written to state.json>; notlar = <warning texts> }
+# Returns   : @{ record = <record to be written to state.json>; notes = <warning texts> }
 function Apply-Policy($rootKey, $values, $previous) {
     $created = @(); $ours = @()
     if ($previous) { $created = @($previous.created | Where-Object { $_ }); $ours = @($previous.values | Where-Object { $_ }) }
@@ -121,7 +154,7 @@ function Apply-Policy($rootKey, $values, $previous) {
         $p = Get-ItemProperty -Path $rootKey -Name $key -ErrorAction SilentlyContinue
         if ($p) { $cur = $p.$key }
         if (($ours -notcontains $key) -and ($null -ne $cur)) {
-            if ($cur -ne $wanted) { $notes += "$key zaten '$cur' olarak ayarli (baska bir kaynak koymus); dokunulmadi." }
+            if ($cur -ne $wanted) { $notes += (T "{0} is already set to '{1}' (by another source); left untouched." $key $cur) }
             continue
         }
         Set-ItemProperty -Path $rootKey -Name $key -Value $wanted -Type String

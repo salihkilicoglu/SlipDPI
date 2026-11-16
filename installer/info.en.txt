@@ -1,0 +1,31 @@
+﻿SlipDPI is a small program that gets past hostname-based blocking in Türkiye without a VPN or tunnel. It only touches the opening packet of connections to the domains on its list.
+
+WHAT HAPPENS DURING SETUP
+
+After the files are copied, a console window opens and does the following:
+
+  1. Your line is tested and a working setting is chosen (2-3 minutes).
+  2. The "SlipDPI" service is installed; it starts automatically with Windows.
+  3. DNS queries for the listed domains only are sent to encrypted DNS.
+  4. If Chrome is installed, "Secure DNS" is turned on by policy.
+  5. The result is verified by connecting to blocked and unblocked addresses.
+
+Do not close that window; it closes by itself when it is done.
+
+WHAT CHANGES ON THE SYSTEM
+
+  - The "SlipDPI" service and the WinDivert driver
+  - The folder C:\Program Files\SlipDPI
+  - A DNS rule for the listed domains (other names stay on the router's DNS)
+  - Two policy values for Chrome (Chrome shows "managed by your organization")
+
+All of it is undone with "Settings > Apps > SlipDPI > Uninstall".
+
+GOOD TO KNOW
+
+  - Windows 11, 64-bit is recommended. Administrator rights are required.
+  - If another DPI tool is running (GoodbyeDPI, zapret, ByeDPI), close it first.
+  - Some antivirus products block the WinDivert driver.
+  - The next page asks whether you want a Start menu and a desktop shortcut.
+  - After setup, the "SlipDPI" control window shows the status and lets you add or remove sites and stop or start the service. If you chose no shortcut, open it with C:\Program Files\SlipDPI\panel.cmd.
+  - The user guide opens from the "Guide" button in the control window.

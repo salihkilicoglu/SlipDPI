@@ -108,7 +108,7 @@ $serviceWasRunning = $false
 if (-not $Nested) {
     $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($svc -and $svc.Status -eq 'Running') {
-        Write-Host 'SlipDPI servisi test suresince durduruluyor (sonunda geri baslatilacak)...'
+        Write-Host (T 'Stopping the SlipDPI service for the duration of the test (it will be restarted at the end)...')
         Stop-Service -Name $ServiceName -Force
         $serviceWasRunning = $true
         Start-Sleep -Seconds 1
@@ -116,12 +116,12 @@ if (-not $Nested) {
 }
 $busy = @(Get-Process winws, winws2, goodbyedpi, ciadpi -ErrorAction SilentlyContinue)
 if ($busy.Count -gt 0) {
-    Finish-Test "Baska bir DPI araci calisiyor ($($busy[0].ProcessName)). Once onu kapat, sonra tekrar dene."
-    if ($Nested) { throw 'strateji testi yapilamadi: baska bir DPI araci calisiyor' }
+    Finish-Test (T 'Another DPI tool is running ({0}). Close it first, then try again.' $busy[0].ProcessName)
+    if ($Nested) { throw (T 'the strategy test could not run: another DPI tool is running') }
     return
 }
 
-Write-Step 'Hedef IP adresleri DoH ile tazeleniyor'
+Write-Step (T 'Refreshing target IP addresses over DoH')
 foreach ($t in $targets) {
     try {
         $j = Invoke-RestMethod -Uri "https://dns.google/resolve?name=$($t.name)&type=A" -TimeoutSec 6
@@ -134,12 +134,12 @@ foreach ($t in $targets) {
 $report = @()
 $proc = $null
 try {
-    Write-Step 'Temel durum (motor kapali) - hepsinin engelli cikmasi beklenir'
+    Write-Step (T 'Baseline (engine off) - all of them are expected to be blocked')
     $r = RunProbes; $s = Summarize $r
-    Write-Host ("  gecen: {0}/{1}   kontrol: {2}/{3}" -f $s.ok, $s.n, $s.controlsOk, $s.controlsN)
+    Write-Host (T '  passed: {0}/{1}   control: {2}/{3}' $s.ok $s.n $s.controlsOk $s.controlsN)
     Write-Host ("  " + $s.text)
-    if ($s.ok -eq $s.n) { Write-Host '  Not: bu hatta site adina gore engel gorunmuyor (yalnizca DNS engeli olabilir).' -ForegroundColor Yellow }
-    if ($s.controlsOk -lt $s.controlsN) { Write-Host '  Uyari: motor kapaliyken kontrol adresleri de acilmiyor; internet baglantisini kontrol et.' -ForegroundColor Yellow }
+    if ($s.ok -eq $s.n) { Write-Host (T '  Note: no blocking by site name is visible on this line (there may be DNS blocking only).') -ForegroundColor Yellow }
+    if ($s.controlsOk -lt $s.controlsN) { Write-Host (T '  Warning: the control addresses do not open with the engine off either; check the internet connection.') -ForegroundColor Yellow }
     $report += [pscustomobject]@{ name = 'baseline_off'; args = ''; started = $true; ok = $s.ok; n = $s.n; controlsOk = $s.controlsOk; controlsN = $s.controlsN; detail = $r }
 
     foreach ($c in $candidates) {
@@ -149,14 +149,14 @@ try {
         $proc = Start-Process -FilePath $winws -ArgumentList $argLine -WorkingDirectory $bin -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
         Start-Sleep -Milliseconds 2500
         if ($proc.HasExited) {
-            Write-Host "  motor baslamadi (cikis kodu $($proc.ExitCode)); ayrinti: $out" -ForegroundColor Yellow
+            Write-Host (T '  the engine did not start (exit code {0}); details: {1}' $proc.ExitCode $out) -ForegroundColor Yellow
             $report += [pscustomobject]@{ name = $c.name; args = $c.args; started = $false; exitCode = $proc.ExitCode; ok = 0; n = 0; controlsOk = 0; controlsN = 0; detail = $null }
             $proc = $null
             continue
         }
         $r = RunProbes; $s = Summarize $r
         $color = 'Gray'; if ($s.ok -eq $s.n -and $s.controlsOk -eq $s.controlsN) { $color = 'Green' } elseif ($s.ok -gt 0) { $color = 'Yellow' }
-        Write-Host ("  gecen: {0}/{1}   kontrol: {2}/{3}" -f $s.ok, $s.n, $s.controlsOk, $s.controlsN) -ForegroundColor $color
+        Write-Host (T '  passed: {0}/{1}   control: {2}/{3}' $s.ok $s.n $s.controlsOk $s.controlsN) -ForegroundColor $color
         Write-Host ("  " + $s.text)
         $report += [pscustomobject]@{ name = $c.name; args = $c.args; started = $true; ok = $s.ok; n = $s.n; controlsOk = $s.controlsOk; controlsN = $s.controlsN; detail = $r }
         Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
@@ -175,10 +175,10 @@ finally {
     $report | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $localDir 'strategy-test.json') -Encoding UTF8
 }
 
-Write-Step 'OZET'
+Write-Step (T 'SUMMARY')
 foreach ($x in $report) {
-    $mark = ''; if ($x.started -and $x.n -gt 0 -and $x.ok -eq $x.n -and $x.controlsOk -eq $x.controlsN) { $mark = 'TAM' } elseif ($x.ok -gt 0) { $mark = 'KISMI' }
-    Write-Host ("{0,-6} {1,-20} engelli: {2}/{3}   kontrol: {4}/{5}" -f $mark, $x.name, $x.ok, $x.n, $x.controlsOk, $x.controlsN)
+    $mark = ''; if ($x.started -and $x.n -gt 0 -and $x.ok -eq $x.n -and $x.controlsOk -eq $x.controlsN) { $mark = (T 'FULL') } elseif ($x.ok -gt 0) { $mark = (T 'PART') }
+    Write-Host (T '{0,-6} {1,-20} blocked: {2}/{3}   control: {4}/{5}' $mark $x.name $x.ok $x.n $x.controlsOk $x.controlsN)
 }
 
 $candidateNames = @($report | Where-Object { $_.name -ne 'baseline_off' })
@@ -187,18 +187,18 @@ if ($choice) {
     $choice['selectedAt'] = (Get-Date).ToString('s')
     $choice['source']  = 'strategy-test'
     [pscustomobject]$choice | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $localDir 'strategy.json') -Encoding UTF8
-    Write-Host ("`nSecilen strateji: {0}   ({1})" -f $choice.name, $choice.tcp) -ForegroundColor Green
-    if ($choice.ttl -gt 0) { Write-Host ("Gecen TTL degerleri: {0}. Denetim kutusu yaklasik {1}. atlamada." -f ($choice.passingTtls -join ', '), $choice.passingTtls[0]) }
+    Write-Host ("`n" + (T 'Selected strategy: {0}   ({1})' $choice.name $choice.tcp)) -ForegroundColor Green
+    if ($choice.ttl -gt 0) { Write-Host (T 'Passing TTL values: {0}. The inspection box is at about hop {1}.' ($choice.passingTtls -join ', ') $choice.passingTtls[0]) }
 } else {
-    Write-Host "`nBu hatta denenen ayarlarin hicbiri butun adresleri acmadi. Onceki secim (varsa) degistirilmedi." -ForegroundColor Yellow
+    Write-Host ("`n" + (T 'None of the settings tried on this line opened all the addresses. The previous choice (if any) was not changed.')) -ForegroundColor Yellow
 }
 
 if ($serviceWasRunning) {
     Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
-    Write-Host 'SlipDPI servisi eski ayariyla geri baslatildi. Yeni secimi uygulamak icin install.ps1 calistir.'
+    Write-Host (T 'The SlipDPI service was restarted with its old setting. Run install.ps1 to apply the new choice.')
 }
 if (-not $Nested) {
     $net = Test-Connection 1.1.1.1 -Count 2 -Quiet
-    Write-Host ("Test bitti. Internet: " + $(if ($net) { 'calisiyor' } else { 'YOK (yeniden baslat)' }))
+    Write-Host ((T 'Test finished. Internet: ') + $(if ($net) { T 'working' } else { T 'DOWN (restart)' }))
     Stop-Transcript | Out-Null
 }

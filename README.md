@@ -25,6 +25,7 @@ kendiliğinden başlar. Hız ve ping değişmez, oyun trafiğine hiç dokunmaz.
 - **Discord hazır gelir.** Discord'un yazı ve ses bağlantıları kurulumla birlikte çalışır.
 - **Hafif.** Kurulum programı yaklaşık 3 MB'tır, servis yaklaşık 8 MB bellek kullanır. Windows'un genel
   DNS ayarına dokunmaz.
+- **Türkçe ve İngilizce.** Kurulum dili sorar; pencereden sonradan değiştirilebilir.
 - **Tek tıkla kaldırılır.** Kaldırınca servis, sürücü ve yaptığı bütün ayarlar geri alınır; geride bir
   şey kalmaz.
 
@@ -36,7 +37,7 @@ ByeDPI, SplitWire) varsa önce onu kapat.
 1. [Releases](../../releases) sayfasından `SlipDPI-setup-<sürüm>.exe` dosyasını indirip çalıştır.
 2. Windows "Kişisel bilgisayarınızı korudu" uyarısı verirse "Ek bilgi" → "Yine de çalıştır". Kurulum
    programı imzasızdır; dosyayı aynı sayfadaki `SHA256SUMS.txt` ile karşılaştırabilirsin.
-3. Başlat menüsü ve masaüstü kısayolu isteyip istemediğini seç, "Kur"a bas.
+3. Dili seç, Başlat menüsü ve masaüstü kısayolu isteyip istemediğini belirle, "Kur"a bas.
 4. Açılan siyah pencere gerisini yapar: hattını test edip uygun ayarı seçer, servisi kurar ve çalıştığını
    sınar. İlk kurulumda bu 2-3 dakika sürer ve o sırada engelli siteler kapalıdır.
 
@@ -64,7 +65,7 @@ kapatman programı durdurmaz.
 - **Kılavuz:** bu belgeyi açar.
 - **Kaldır:** programı kaldırır.
 
-Düğmelerin üzerine gelince ne yaptıkları yazar. "Yeniden test et" ve "Onar" listeleri silmez.
+Düğmelerin üzerine gelince ne yaptıkları yazar. "Yeniden test et" ve "Onar" listeleri silmez. Pencerenin sağ üst köşesindeki bağlantı dili Türkçe ile İngilizce arasında değiştirir.
 
 ### Yeni bir engelli site
 

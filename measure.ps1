@@ -1,8 +1,8 @@
 # SlipDPI : speed / latency measurement  (no administrator needed, changes nothing)
-# Run it with the engine off and on, then compare the results; output goes to local\measure-<Etiket>.json.
-# Usage:  powershell -ExecutionPolicy Bypass -File measure.ps1 -Label once
+# Run it with the engine off and on, then compare the results; output goes to local\measure-<Label>.json.
+# Usage:  powershell -ExecutionPolicy Bypass -File measure.ps1 -Label before
 # Note: the download test is short (50 MB) and noisy; the test server may reject with 429 on many requests.
-param([string]$Label = 'olcum')
+param([string]$Label = 'measure')
 
 $out = [ordered]@{ label = $Label; time = (Get-Date).ToString('s'); engineRunning = [bool](Get-Process winws -ErrorAction SilentlyContinue) }
 
@@ -13,7 +13,7 @@ foreach ($t in '1.1.1.1', '8.8.8.8', '162.159.138.232') {
     if ($r.Count -gt 0) {
         $m = $r | Measure-Object ResponseTime -Average -Minimum -Maximum
         $out.ping[$t] = [ordered]@{ avg = [math]::Round($m.Average, 1); min = $m.Minimum; max = $m.Maximum; loss = 20 - $r.Count }
-    } else { $out.ping[$t] = 'cevap yok' }
+    } else { $out.ping[$t] = 'no reply' }
 }
 
 # --- TLS handshake time (443, the port the engine watches; sites NOT on the list) ---
@@ -24,7 +24,7 @@ foreach ($u in 'https://www.google.com/generate_204', 'https://github.com/', 'ht
         $o = & curl.exe -s -o NUL -w '%{time_appconnect}' --ssl-no-revoke --max-time 8 $u
         $d = 0.0; if ([double]::TryParse("$o", [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$d) -and $d -gt 0) { $v += $d * 1000 }
     }
-    if ($v.Count -gt 0) { $out.tls_ms[$u] = [math]::Round(($v | Sort-Object)[[int][math]::Floor($v.Count / 2)], 1) } else { $out.tls_ms[$u] = 'basarisiz' }
+    if ($v.Count -gt 0) { $out.tls_ms[$u] = [math]::Round(($v | Sort-Object)[[int][math]::Floor($v.Count / 2)], 1) } else { $out.tls_ms[$u] = 'failed' }
 }
 
 # --- download / upload (over 443; upload is the direction that passes through the engine) ---
@@ -61,5 +61,5 @@ try {
     New-Item -ItemType Directory -Force $localDir | Out-Null
     $json | Set-Content -Path (Join-Path $localDir "measure-$Label.json") -Encoding UTF8
 }
-Write-Host "Sonuc dosyasi: $(Join-Path $localDir "measure-$Label.json")"
+Write-Host "Result file: $(Join-Path $localDir "measure-$Label.json")"
 $json

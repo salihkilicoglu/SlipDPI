@@ -72,4 +72,4 @@ for ($i = 0; $i -lt $sizes.Count; $i++) {
 }
 foreach ($data in $images) { $w.Write($data) }
 $w.Flush(); $fs.Close()
-"Yazildi: $OutFile  ($((Get-Item $OutFile).Length) bayt, boyutlar: $($sizes -join ', '))"
+"Written: $OutFile  ($((Get-Item $OutFile).Length) bytes, sizes: $($sizes -join ', '))"
